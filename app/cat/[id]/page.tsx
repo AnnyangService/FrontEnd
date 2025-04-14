@@ -1,3 +1,5 @@
+"use client"
+
 import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
@@ -18,7 +20,7 @@ export default function CatProfilePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="pb-16">
+    <main className="max-w-md mx-auto bg-white min-h-screen flex flex-col pb-16">
       <Header title="고양이 정보" backUrl="/profile" showSettings />
 
       <div className="relative">
@@ -34,12 +36,10 @@ export default function CatProfilePage({ params }: { params: { id: string } }) {
         </Link>
       </div>
 
-      <div className="p-4"></div>
-
       <div className="p-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">{catInfo.name}</h2>
-          <button className="bg-blue-100 text-blue-600 px-4 py-2 rounded-full">정상</button>
+          
         </div>
 
         <div className="space-y-4">
@@ -74,7 +74,6 @@ export default function CatProfilePage({ params }: { params: { id: string } }) {
           </div>
         </div>
       </div>
-    </div>
+    </main>
   )
 }
-

@@ -30,14 +30,14 @@ export default function HomePage() {
 
         <div className="grid grid-cols-2 gap-4 mb-8">
           <Link href="/diagnosis/new" className="bg-blue-500 text-white p-6 rounded-lg flex flex-col items-center">
-            <div className="bg-white rounded-full p-2 mb-2">
-              <Image src="/placeholder.svg?height=24&width=24" alt="카메라" width={24} height={24} />
+            <div className="bg rounded-full p-2 mb-2">
+              <Image src="/images/camera_vector.svg?height=30&width=30" alt="카메라" width={24} height={24} />
             </div>
             <span className="text-center">새로운 진단</span>
           </Link>
           <Link href="/chat" className="bg-green-500 text-white p-6 rounded-lg flex flex-col items-center">
-            <div className="bg-white rounded-full p-2 mb-2">
-              <Image src="/placeholder.svg?height=24&width=24" alt="채팅" width={24} height={24} />
+            <div className="bg rounded-full p-2 mb-2">
+              <Image src="images/chatting_vector.svg?height=30&width=30" alt="채팅" width={24} height={24} />
             </div>
             <span className="text-center">AI 챗봇</span>
           </Link>

@@ -4,61 +4,38 @@ import Header from "@/components/header"
 
 export default function DiagnosisResultPage({ params }: { params: { id: string } }) {
   return (
-    <div className="pb-16">
-      <Header title="진단 결과" backUrl="/" showMoreOptions />
+    <main className="max-w-md mx-auto bg-white min-h-screen flex flex-col pb-16">
+      <Header title="상세" backUrl="/" />
 
-      <div className="p-4">
-        <div className="mb-4">
-          <Image
-            src="/images/cat-mio.png"
-            alt="고양이 사진"
-            width={600}
-            height={400}
-            className="w-full h-auto rounded-lg"
-          />
+      <div className="p-4 flex-1">
+        {/* 이미지 영역 */}
+        <div className="mb-6 w-full h-[240px] bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 text-2xl font-bold">
+          390 × 240
         </div>
 
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">미오 진단결과</h2>
-            <p className="text-gray-500">2025.02.15 15:30</p>
+        {/* 제목 + 상태 */}
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xl font-bold">미오 진단결과</h2>
+          <span className="text-blue-600 bg-blue-100 text-sm px-3 py-1 rounded-full">정상</span>
+        </div>
+
+        {/* 진단 일시 */}
+        <p className="text-gray-500 mb-6">
+          진단 일시<br />2025.02.15 15:30
+        </p>
+
+        {/* AI 분석 결과 박스 */}
+        <div className="bg-green-50 p-4 rounded-lg mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <Image src="/images/robot-icon.png" alt="AI" width={20} height={20} />
+            <span className="font-semibold text-sm">AI 분석 결과</span>
           </div>
-          <button className="bg-blue-100 text-blue-600 px-4 py-2 rounded-full">정상</button>
+          <p className="text-sm text-gray-700">수의사 AI의 진단 의견입니다</p>
+          <p className="mt-2 text-sm">결막염 초기증세가 의심됩니다</p>
         </div>
 
-        <div className="bg-gray-50 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="bg-green-100 rounded-full p-2">
-              <Image src="/images/robot-icon.png" alt="AI" width={32} height={32} />
-            </div>
-            <div>
-              <h3 className="font-medium">AI 분석 결과</h3>
-              <p className="text-gray-500 text-sm">수의사 AI의 진단 의견입니다</p>
-            </div>
-          </div>
-
-          <p className="mt-4">
-            고양이의 눈 상태는 전반적으로 양호해 보입니다. 동공 반응이 정상이며, 결막도 건강한 상태입니다.
-          </p>
-
-          <p className="mt-4">특별한 염증이나 감염의 징후는 보이지 않으며, 눈물량도 적절한 수준을 유지하고 있습니다.</p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Link
-            href="/diagnosis/new"
-            className="bg-blue-500 text-white py-4 rounded-lg flex justify-center items-center"
-          >
-            <Image src="/placeholder.svg?height=24&width=24" alt="카메라" width={24} height={24} className="mr-2" />
-            <span>새로운 진단</span>
-          </Link>
-          <Link href="/chat" className="bg-green-500 text-white py-4 rounded-lg flex justify-center items-center">
-            <Image src="/placeholder.svg?height=24&width=24" alt="채팅" width={24} height={24} className="mr-2" />
-            <span>AI 챗봇</span>
-          </Link>
-        </div>
+        {/* 하단 버튼들 생략됨 (이미지 기준엔 없음) */}
       </div>
-    </div>
+    </main>
   )
 }
-
