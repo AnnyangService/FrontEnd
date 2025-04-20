@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, MoreVertical, Settings } from "lucide-react"
 
 interface HeaderProps {
@@ -9,13 +12,15 @@ interface HeaderProps {
 }
 
 export default function Header({ title, backUrl, showSettings = false, showMoreOptions = false }: HeaderProps) {
+  const router = useRouter()
+
   return (
     <header className="flex items-center justify-between p-4 border-b">
       <div className="flex items-center">
         {backUrl && (
-          <Link href={backUrl} className="mr-2">
+          <button onClick={() => router.back()} className="mr-2">
             <ArrowLeft className="w-6 h-6" />
-          </Link>
+          </button>
         )}
         <h1 className="text-xl font-medium">{title}</h1>
       </div>
@@ -34,4 +39,3 @@ export default function Header({ title, backUrl, showSettings = false, showMoreO
     </header>
   )
 }
-

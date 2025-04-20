@@ -4,11 +4,13 @@ import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
 import { Edit2 } from "lucide-react"
+import { use } from "react"
 
-export default function CatProfilePage({ params }: { params: { id: string } }) {
-  // 여기서는 id가 1인 경우 미오의 정보를 보여줍니다
+export default function CatProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params) // ✅ params는 Promise이므로 use()로 불러와야 함
+
   const catInfo = {
-    id: params.id,
+    id,
     name: "미오",
     image: "/images/cat-closeup.png",
     birthDate: "2023년 3월 15일",
@@ -20,60 +22,45 @@ export default function CatProfilePage({ params }: { params: { id: string } }) {
   }
 
   return (
-    <main className="max-w-md mx-auto bg-white min-h-screen flex flex-col pb-16">
-      <Header title="고양이 정보" backUrl="/profile" showSettings />
+    <div className="flex flex-col min-h-screen bg-white pb-16">
+      <Header title="고양이 정보" backUrl="/profile"  />
 
-      <div className="relative">
+      {/* 이미지 영역 */}
+      <div className="relative w-full h-64">
         <Image
-          src={catInfo.image || "/placeholder.svg"}
+          src={catInfo.image}
           alt={catInfo.name}
-          width={600}
-          height={400}
-          className="w-full h-64 object-cover"
+          fill
+          className="object-cover"
         />
-        <Link href={`/cat/${catInfo.id}/edit`} className="absolute top-4 right-4 bg-white p-2 rounded-full">
-          <Edit2 className="w-5 h-5" />
+        <Link
+          href={`/cat/${catInfo.id}/edit`}
+          className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"
+        >
+          <Edit2 className="w-5 h-5 text-gray-700" />
         </Link>
       </div>
 
-      <div className="p-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">{catInfo.name}</h2>
-          
-        </div>
+      {/* 정보 영역 */}
+      <div className="p-4 space-y-6 text-sm">
+        <h2 className="text-2xl font-bold text-center">{catInfo.name}</h2>
 
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-gray-500">생년월일</h3>
-            <p>{catInfo.birthDate}</p>
-          </div>
-
-          <div>
-            <h3 className="text-gray-500">품종</h3>
-            <p>{catInfo.breed}</p>
-          </div>
-
-          <div>
-            <h3 className="text-gray-500">성별</h3>
-            <p>{catInfo.gender}</p>
-          </div>
-
-          <div>
-            <h3 className="text-gray-500">체중</h3>
-            <p>{catInfo.weight}</p>
-          </div>
-
-          <div>
-            <h3 className="text-gray-500">최근 진단</h3>
-            <p>{catInfo.lastDiagnosis}</p>
-          </div>
-
-          <div>
-            <h3 className="text-gray-500">특이사항</h3>
-            <p>{catInfo.specialNotes}</p>
-          </div>
-        </div>
+        <InfoRow label="생년월일" value={catInfo.birthDate} />
+        <InfoRow label="품종" value={catInfo.breed} />
+        <InfoRow label="성별" value={catInfo.gender} />
+        <InfoRow label="체중" value={catInfo.weight} />
+        <InfoRow label="최근 진단" value={catInfo.lastDiagnosis} />
+        <InfoRow label="특이사항" value={catInfo.specialNotes} />
       </div>
-    </main>
+    </div>
+  )
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <h3 className="text-gray-500 text-sm mb-1">{label}</h3>
+      <p className="text-gray-900 text-base">{value}</p>
+    </div>
   )
 }

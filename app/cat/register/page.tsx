@@ -1,14 +1,31 @@
-
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import Header from "@/components/header"
 import Image from "next/image"
-import { Calendar } from "lucide-react"
 
 export default function RegisterCatPage() {
   const [gender, setGender] = useState<string | null>(null)
-  const [breed, setBreed] = useState<string>("") // ✅ 추가
+  const [breed, setBreed] = useState<string>("")
+  const [customBreed, setCustomBreed] = useState<string>("")
+  const [selectedDate, setSelectedDate] = useState<string>("")
+
+  // 이미지 미리보기 URL 상태
+  const [previewUrl, setPreviewUrl] = useState<string>("")
+
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+    }
+  }
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedDate(e.target.value)
+  }
 
   return (
     <div className="pb-16">
@@ -16,10 +33,29 @@ export default function RegisterCatPage() {
 
       <div className="p-4">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Image src="/placeholder.svg?height=48&width=48" alt="이미지 추가" width={48} height={48} />
+          {/* 이미지 영역을 더 크게 조정 */}
+          <div className="w-40 h-40 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <Image
+              src={previewUrl || "/placeholder.svg?height=160&width=160"}
+              alt="이미지 추가"
+              width={160}
+              height={160}
+              className="rounded-full object-cover w-full h-full"
+            />
           </div>
-          <button className="text-blue-500">사진 등록하기</button>
+          <button
+            className="text-blue-500"
+            onClick={() => galleryInputRef.current?.click()}
+          >
+            사진 등록하기
+          </button>
+          <input
+            type="file"
+            accept="image/*"
+            ref={galleryInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
         </div>
 
         <div className="space-y-6">
@@ -30,29 +66,40 @@ export default function RegisterCatPage() {
 
           <div>
             <label className="block text-gray-700 mb-2">생년월일</label>
-            <div className="relative">
-              <input type="text" placeholder="YYYY.MM.DD" className="w-full p-3 border rounded-lg" />
-              <Calendar className="absolute right-3 top-3 text-gray-400" />
-            </div>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={handleDateChange}
+              className="w-full p-3 border rounded-lg"
+            />
           </div>
 
+          {/* ✅ 품종 선택 */}
           <div>
             <label className="block text-gray-700 mb-2">품종</label>
-            <div className="relative">
-              <select
-                className="w-full p-3 border rounded-lg appearance-none"
-                value={breed} // ✅ 바인딩
-                onChange={(e) => setBreed(e.target.value)} // ✅ 상태 업데이트
-              >
-                <option value="" disabled>품종을 선택하세요</option>
-                <option value="코리안숏헤어">코리안숏헤어</option>
-                <option value="페르시안">페르시안</option>
-                <option value="러시안블루">러시안블루</option>
-                <option value="샴">샴</option>
-                <option value="노랑이">노랑이</option>
-              </select>
-              <div className="absolute right-3 top-3 pointer-events-none">▼</div>
-            </div>
+            <select
+              className="w-full p-3 border rounded-lg appearance-none"
+              value={breed}
+              onChange={(e) => setBreed(e.target.value)}
+            >
+              <option value="" disabled>품종을 선택하세요</option>
+              <option value="코리안숏헤어">코리안숏헤어</option>
+              <option value="페르시안">페르시안</option>
+              <option value="러시안블루">러시안블루</option>
+              <option value="샴">샴</option>
+              <option value="노랑이">노랑이</option>
+              <option value="custom">직접 입력</option>
+            </select>
+
+            {breed === "custom" && (
+              <input
+                type="text"
+                value={customBreed}
+                onChange={(e) => setCustomBreed(e.target.value)}
+                placeholder="직접 입력하세요"
+                className="mt-2 w-full p-3 border rounded-lg"
+              />
+            )}
           </div>
 
           <div>

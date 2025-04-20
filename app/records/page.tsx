@@ -4,78 +4,69 @@ import Image from "next/image"
 
 export default function RecordsPage() {
   return (
-    <div className="pb-16">
+    <div className="pb-16 flex flex-col min-h-screen bg-white">
       <Header title="기록" showSettings />
 
-      <div className="p-4">
-        <div className="mb-8">
-          <div className="mb-2">
-            <p className="text-gray-500">2025.02.15</p>
-            <h2 className="text-xl font-bold">눈 결막염 진단</h2>
-          </div>
+      <div className="p-4 space-y-8">
 
-          <Link href="/diagnosis/result/1" className="block border rounded-lg p-4">
-            <div className="flex gap-4">
-              <Image
-                src="/images/cat-closeup.png"
-                alt="고양이 눈"
-                width={120}
-                height={120}
-                className="rounded-lg object-cover"
-              />
-              <div>
-                <p className="text-gray-700">증상: 눈물이 많이 나고 충혈이 심함</p>
-                <p className="text-gray-700 mt-1">진단: 결막염 초기 증상</p>
+        {/* 고양이 눈 질병 기록 */}
+        <section>
+          <h2 className="text-lg font-bold mb-4">고양이 눈 질병 기록</h2>
+
+          <div className="space-y-4">
+            <Link href="/diagnosis/result/1" className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
+              <div className="flex gap-4">
+                <Image
+                  src="/images/cat-closeup.png"
+                  alt="고양이 눈"
+                  width={100}
+                  height={100}
+                  className="rounded-lg object-cover"
+                />
+                <div>
+                  <p className="font-semibold text-gray-800 mb-1">눈 결막염 진단</p>
+                  <p className="text-sm text-gray-600">2025.02.15</p>
+                  <p className="text-sm text-gray-600 mt-1">눈물이 많이 나고 충혈이 심함</p>
+                </div>
               </div>
-            </div>
-            <div className="block text-center text-blue-500 mt-4 py-2 border-t">
-              상세보기
-            </div>
-          </Link>
-        </div>
+              <div className="text-blue-500 mt-3 text-center border-t pt-2 text-sm">상세보기</div>
+            </Link>
 
-        <div className="mb-8">
-          <div className="mb-2">
-            <p className="text-gray-500">2025.02.10</p>
-            <h2 className="text-xl font-bold">정기 검진</h2>
-          </div>
-
-          <Link href="/diagnosis/result/2" className="block border rounded-lg p-4">
-            <div className="flex gap-4">
-              <Image
-                src="/images/cat-nabi.png"
-                alt="나비"
-                width={120}
-                height={120}
-                className="rounded-lg object-cover"
-              />
-              <div>
-                <p className="text-gray-700">상태: 양호</p>
-                <p className="text-gray-700 mt-1">특이사항 없음</p>
+            <Link href="/diagnosis/result/2" className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
+              <div className="flex gap-4">
+                <Image
+                  src="/images/cat-nabi.png"
+                  alt="고양이"
+                  width={100}
+                  height={100}
+                  className="rounded-lg object-cover"
+                />
+                <div>
+                  <p className="font-semibold text-gray-800 mb-1">정기 검진</p>
+                  <p className="text-sm text-gray-600">2025.02.10</p>
+                  <p className="text-sm text-gray-600 mt-1">양호 / 특이사항 없음</p>
+                </div>
               </div>
-            </div>
-            <div className="block text-center text-blue-500 mt-4 py-2 border-t">
-              상세보기
-            </div>
-          </Link>
-        </div>
-
-        <div className="mb-8">
-          <div className="mb-2">
-            <p className="text-gray-500">2025.02.14</p>
-            <h2 className="text-xl font-bold">AI 상담</h2>
+              <div className="text-blue-500 mt-3 text-center border-t pt-2 text-sm">상세보기</div>
+            </Link>
           </div>
+        </section>
 
-          <Link href="/chat/history/1" className="block border rounded-lg p-4">
-            <div>
-              <p className="font-medium">Q: 고양이 눈 건강 관리는 어떻게 해야 하나요?</p>
-              <p className="text-gray-600 mt-2">A: 정기적인 청결 관리와 이상 증상 관찰이 중요합니다.</p>
-            </div>
-            <div className="block text-center text-blue-500 mt-4 py-2 border-t">
-              상세보기
-            </div>
-          </Link>
-        </div>
+        {/* AI 상담 기록 */}
+        <section>
+          <h2 className="text-lg font-bold mb-4">AI 상담 기록</h2>
+
+          <div className="space-y-4">
+            <Link href="/chat/result" className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
+              <div className="mb-2">
+                <p className="font-medium text-gray-800">Q: 고양이 눈 건강 관리는 어떻게 해야 하나요?</p>
+                <p className="text-sm text-gray-600 mt-1">A: 정기적인 청결 관리와 이상 증상 관찰이 중요합니다.</p>
+              </div>
+              <div className="text-blue-500 mt-3 text-center border-t pt-2 text-sm">상세보기</div>
+            </Link>
+          </div>
+        </section>
+
       </div>
     </div>
   )

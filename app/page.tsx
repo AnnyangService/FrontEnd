@@ -1,20 +1,48 @@
+"use client"
+
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Bell, Settings } from "lucide-react"
 
 export default function HomePage() {
+  const [showNotifications, setShowNotifications] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   return (
-    <div className="pb-16">
-      <header className="flex items-center justify-between p-4">
-        <button className="p-2">
-          <div className="w-6 h-1 bg-gray-700 mb-1"></div>
-          <div className="w-6 h-1 bg-gray-700 mb-1"></div>
-          <div className="w-6 h-1 bg-gray-700"></div>
-        </button>
-        <div className="flex items-center gap-4">
-          <Link href="/notifications">
+    <div className="pb-16 relative">
+      <header className="flex items-center justify-end p-4">
+        
+        <div className="flex items-center gap-4 relative">
+          {/* 종 버튼 */}
+          <button onClick={() => setShowNotifications(!showNotifications)}>
             <Bell className="w-6 h-6" />
-          </Link>
+          </button>
+
+          {/* 알림 박스 */}
+          {showNotifications && (
+            <div
+              ref={notifRef}
+              className="absolute top-8 right-0 w-64 bg-white border shadow-md rounded-md animate-fade-in z-50"
+            >
+              <div className="p-3 border-b font-medium text-sm">알림</div>
+              <ul className="text-sm divide-y">
+                <li className="p-3 hover:bg-gray-100">🔔 새 진단 결과가 도착했습니다.</li>
+                <li className="p-3 hover:bg-gray-100">💬 AI 상담 답변이 준비되었습니다.</li>
+              </ul>
+            </div>
+          )}
+
           <Link href="/settings">
             <Settings className="w-6 h-6" />
           </Link>
@@ -77,6 +105,8 @@ export default function HomePage() {
         </Link>
       </div>
     </div>
+    
   )
 }
+
 
