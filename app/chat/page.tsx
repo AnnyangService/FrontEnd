@@ -52,7 +52,7 @@ export default function ChatPage() {
     }
   }
 
-  const handleSend = () => {
+  /*const handleSend = () => {
     if (input.trim() === "" && !selectedImage) return
     setMessages(prev => [
       ...prev,
@@ -62,7 +62,40 @@ export default function ChatPage() {
     setSelectedImage(null)
     setPreviewUrl("")
     if (inputRef.current) inputRef.current.style.height = "auto"
-  }
+  }*/
+
+    const handleSend = () => {
+      if (input.trim() === "" && !selectedImage) return
+    
+      // 1. 사용자 메시지 추가
+      setMessages(prev => [
+        ...prev,
+        { text: input, from: "user", image: previewUrl }
+      ])
+    
+      // 2. 봇 타이핑 표시 추가
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev,
+          { text: "", from: "bot", typing: true }
+        ])
+      }, 300) // 0.3초 후에 "typing" 표시 추가
+    
+      // 3. 봇 실제 답변 추가
+      setTimeout(() => {
+        setMessages(prev => [
+          ...prev.slice(0, -1), // typing 메시지 지우고
+          { text: "ai답변이런식으로 나옵니다.", from: "bot" }
+        ])
+      }, 1800) // typing 후 시간지나면 추가
+    
+      // 4. 입력창 초기화
+      setInput("")
+      setSelectedImage(null)
+      setPreviewUrl("")
+      if (inputRef.current) inputRef.current.style.height = "auto"
+    }
+    
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value)
@@ -158,14 +191,15 @@ export default function ChatPage() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-[120px]">
         {messages.map((msg, idx) => (
           <ChatBubble
-            key={idx}
-            text={msg.text}
-            from={msg.from}
-            theme={theme}
-            image={msg.image}
-            onCopy={() => handleCopy(msg.text)}
-            onRegenerate={msg.from === "user" ? () => alert("응답 재생성") : undefined}
-          />
+          key={idx}
+          text={msg.text}
+          from={msg.from}
+          theme={theme}
+          image={msg.image}
+          typing={(msg as any).typing}  // ✅ typing 전달
+          onCopy={() => handleCopy(msg.text)}
+          onRegenerate={msg.from === "user" ? () => alert("응답 재생성") : undefined}
+        />
         ))}
       </div>
 
@@ -189,7 +223,7 @@ export default function ChatPage() {
   )
 }
 
-function ChatBubble({ text, from, theme, onCopy, onRegenerate, image }: { text: React.ReactNode; from: "bot" | "user"; theme: any; onCopy?: () => void; onRegenerate?: () => void; image?: string }) {
+/*function ChatBubble({ text, from, theme, onCopy, onRegenerate, image }: { text: React.ReactNode; from: "bot" | "user"; theme: any; onCopy?: () => void; onRegenerate?: () => void; image?: string }) {
   return (
     <div className={from === "bot" ? "flex items-start gap-2" : "flex justify-end"}>
       {from === "bot" && <Image src="/images/robot-icon.png" alt="AI" width={40} height={40} className="rounded-full" />}
@@ -197,6 +231,42 @@ function ChatBubble({ text, from, theme, onCopy, onRegenerate, image }: { text: 
         {image && <img src={image} alt="attachment" className="w-32 h-32 object-cover rounded-lg mb-2" />}
         <p>{text}</p>
         <div className="flex justify-end gap-2 mt-2 text-sm text-white">{onCopy && <button onClick={onCopy} className="hover:text-black" title="복사"><Copy className="w-4 h-4 inline" /></button>}{onRegenerate && <button onClick={onRegenerate} className="hover:text-black" title="재생성"><RefreshCw className="w-4 h-4 inline" /></button>}</div>
+      </div>
+    </div>
+  )
+}*/
+
+function ChatBubble({ text, from, theme, onCopy, onRegenerate, image, typing }: {
+  text: React.ReactNode;
+  from: "bot" | "user";
+  theme: any;
+  onCopy?: () => void;
+  onRegenerate?: () => void;
+  image?: string;
+  typing?: boolean;
+}) {
+  return (
+    <div className={from === "bot" ? "flex items-start gap-2" : "flex justify-end"}>
+      {from === "bot" && <Image src="/images/robot-icon.png" alt="AI" width={40} height={40} className="rounded-full" />}
+      <div className={`${from === "bot" ? theme.bubble : theme.myMsg} ${from === "bot" ? "text-black" : "text-white"} p-3 rounded-lg max-w-[80%] break-words`}>
+        
+        {typing ? (
+          <div className="flex items-center gap-1">
+            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></div>
+            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-300"></div>
+          </div>
+        ) : (
+          <>
+            {image && <img src={image} alt="attachment" className="w-32 h-32 object-cover rounded-lg mb-2" />}
+            <p>{text}</p>
+          </>
+        )}
+
+        <div className="flex justify-end gap-2 mt-2 text-sm text-white">
+          {onCopy && <button onClick={onCopy} className="hover:text-black" title="복사"><Copy className="w-4 h-4 inline" /></button>}
+          {onRegenerate && <button onClick={onRegenerate} className="hover:text-black" title="재생성"><RefreshCw className="w-4 h-4 inline" /></button>}
+        </div>
       </div>
     </div>
   )
