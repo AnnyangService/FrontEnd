@@ -1,7 +1,39 @@
-import Image from "next/image"
-import Header from "@/components/header"
+"use client"
 
-export default function DiagnosisResultPage({ params }: { params: { id: string } }) {
+import { use, useEffect, useState } from "react"
+import Header from "@/components/header"
+import Image from "next/image"
+import { DiagnosisResult } from "@/lib/types/diagnosis"
+
+async function getDiagnosisResult(id: string): Promise<DiagnosisResult> {
+  return {
+    id,
+    catName: "미오",
+    date: "2025.02.15 15:30",
+    status: "정상",
+    image: "/images/cat-mio.png",
+    analysis: "결막염 초기 증세가 의심됩니다."
+  };
+}
+
+export default function DiagnosisResultPage({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = use(params);
+  const [result, setResult] = useState<DiagnosisResult | null>(null);
+
+  useEffect(() => {
+    async function loadResult() {
+      const data = await getDiagnosisResult(id);
+      setResult(data);
+    }
+    loadResult();
+  }, [id]);
+
+  if (!result) return null;
+
   return (
     <div className="flex flex-col min-h-screen bg-white pb-16">
       <Header title="상세" backUrl="/records" />
@@ -14,13 +46,13 @@ export default function DiagnosisResultPage({ params }: { params: { id: string }
 
         {/* 제목 + 상태 */}
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-bold text-gray-900">미오 진단결과</h2>
-          <span className="text-blue-600 bg-blue-100 text-sm px-3 py-1 rounded-full">정상</span>
+          <h2 className="text-xl font-bold text-gray-900">{result.catName} 진단결과</h2>
+          <span className="text-blue-600 bg-blue-100 text-sm px-3 py-1 rounded-full">{result.status}</span>
         </div>
 
         {/* 진단 일시 */}
         <p className="text-sm text-gray-500 mb-6">
-          진단 일시<br />2025.02.15 15:30
+          진단 일시<br />{result.date}
         </p>
 
         {/* AI 분석 결과 박스 */}
@@ -30,7 +62,7 @@ export default function DiagnosisResultPage({ params }: { params: { id: string }
             <span className="font-semibold text-sm text-gray-800">AI 분석 결과</span>
           </div>
           <p className="text-sm text-gray-600">수의사 AI의 진단 의견입니다.</p>
-          <p className="mt-2 text-sm text-gray-800">결막염 초기 증세가 의심됩니다.</p>
+          <p className="mt-2 text-sm text-gray-800">{result.analysis}</p>
         </div>
       </div>
     </div>

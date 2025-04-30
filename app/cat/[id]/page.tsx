@@ -4,12 +4,12 @@ import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
 import { Edit2 } from "lucide-react"
-import { use } from "react"
+import { use, useEffect, useState } from "react"
+import { Cat } from "@/lib/types/cat"
 
-export default function CatProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params) // ✅ params는 Promise이므로 use()로 불러와야 함
-
-  const catInfo = {
+async function getCat(id: string): Promise<Cat> {
+  // 임시 데이터 (API 연동 전까지 사용)
+  return {
     id,
     name: "미오",
     image: "/images/cat-closeup.png",
@@ -19,7 +19,32 @@ export default function CatProfilePage({ params }: { params: Promise<{ id: strin
     weight: "4.2kg",
     lastDiagnosis: "2025.02.15",
     specialNotes: "알레르기 있음 (생선)",
+  };
+
+  /** 실제 API 연동 시에는 아래 주석 해제
+  try {
+    return await fetchApi<Cat>(`/cats/${id}`);
+  } catch (error) {
+    // app/cat/[id]/error.tsx
+    notFound();
   }
+  */ 
+}
+
+export default function CatProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params) // ✅ params는 Promise이므로 use()로 불러와야 함
+
+  const [catInfo, setCatInfo] = useState<Cat | null>(null);
+
+  useEffect(() => {
+    async function loadCat() {
+      const data = await getCat(id);
+      setCatInfo(data);
+    }
+    loadCat();
+  }, [id]);
+
+  if (!catInfo) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-white pb-16">

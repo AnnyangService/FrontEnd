@@ -5,8 +5,65 @@ import Link from "next/link"
 import Image from "next/image"
 import { Bell, Settings } from "lucide-react"
 
+type RecentDiagnosis = {
+  id: number;
+  name: string;
+  date: string;
+  image: string;
+};
+
+type RecentChat = {
+  id: number;
+  title: string;
+  date: string;
+};
+
+type RecentNotification = {
+  id: number;
+  title: string;
+};
+
+async function getRecentDiagnoses(): Promise<RecentDiagnosis[]> {
+  return [
+    {
+      id: 1,
+      name: '미오 진단결과',
+      date: '2025.02.15',
+      image: '/images/cat-mio.png',
+    },
+    {
+      id: 2,
+      name: '나비 진단결과',
+      date: '2025.02.14',
+      image: '/images/cat-nabi.png',
+    },
+  ];
+}
+
+async function getRecentChat(): Promise<RecentChat[]> {
+  return [
+    {
+      id: 1,
+      title: '최근 상담',
+      date: '2025.02.15 14:30',
+    },
+  ];
+}
+
+async function getRecentNotification(): Promise<RecentNotification[]> {
+  return [
+    {
+      id: 1,
+      title: '새 진단 결과가 도착했습니다.',
+    },
+  ];
+}
+
 export default function HomePage() {
   const [showNotifications, setShowNotifications] = useState(false)
+  const [recentDiagnoses, setRecentDiagnoses] = useState<RecentDiagnosis[]>([])
+  const [recentChat, setRecentChat] = useState<RecentChat[]>([])
+  const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([])
   const notifRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -19,10 +76,25 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    async function loadData() {
+      const [diagnoses, chat, notifications] = await Promise.all([
+        getRecentDiagnoses(),
+        getRecentChat(),
+        getRecentNotification()
+      ])
+      setRecentDiagnoses(diagnoses)
+      setRecentChat(chat)
+      setRecentNotifications(notifications)
+    }
+    loadData()
+  }, [])
+
+  if (!recentDiagnoses || !recentChat) return null
+
   return (
     <div className="pb-16 relative">
       <header className="flex items-center justify-end p-4">
-        
         <div className="flex items-center gap-4 relative">
           {/* 종 버튼 */}
           <button onClick={() => setShowNotifications(!showNotifications)}>
@@ -37,8 +109,11 @@ export default function HomePage() {
             >
               <div className="p-3 border-b font-medium text-sm">알림</div>
               <ul className="text-sm divide-y">
-                <li className="p-3 hover:bg-gray-100">🔔 새 진단 결과가 도착했습니다.</li>
-                <li className="p-3 hover:bg-gray-100">💬 AI 상담 답변이 준비되었습니다.</li>
+                {recentNotifications?.map((notification) => (
+                  <li key={notification.id} className="p-3 hover:bg-gray-100">
+                    {notification.title}
+                  </li>
+                ))}
               </ul>
             </div>
           )}
@@ -73,39 +148,33 @@ export default function HomePage() {
 
         <h2 className="text-xl font-bold mb-4">최근 진단 기록</h2>
         <div className="space-y-4">
-          <Link href="/diagnosis/result/1" className="block border rounded-lg p-4">
-            <div className="flex gap-4">
-              <Image src="/images/cat-mio.png" alt="미오" width={80} height={80} className="rounded-lg object-cover" />
-              <div>
-                <h3 className="font-medium">미오 진단결과</h3>
-                <p className="text-gray-500">2025.02.15</p>
+          {recentDiagnoses.map((diagnosis) => (
+            <Link href={`/diagnosis/result/${diagnosis.id}`} className="block border rounded-lg p-4">
+              <div className="flex gap-4">
+                <Image src={diagnosis.image} alt={diagnosis.name} width={80} height={80} className="rounded-lg object-cover" />
+                <div>
+                  <h3 className="font-medium">{diagnosis.name}</h3>
+                  <p className="text-gray-500">{diagnosis.date}</p>
+                </div>
               </div>
-            </div>
-          </Link>
-          <Link href="/diagnosis/result/2" className="block border rounded-lg p-4">
-            <div className="flex gap-4">
-              <Image src="/images/cat-nabi.png" alt="나비" width={80} height={80} className="rounded-lg object-cover" />
-              <div>
-                <h3 className="font-medium">나비 진단결과</h3>
-                <p className="text-gray-500">2025.02.14</p>
-              </div>
-            </div>
-          </Link>
+            </Link>
+          ))}
         </div>
 
         <h2 className="text-xl font-bold mt-8 mb-4">AI 상담 기록</h2>
-        <Link href="/chat/history/1" className="block border rounded-lg p-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="font-medium">최근 상담</h3>
-              <p className="text-gray-500">2025.02.15 14:30</p>
+        {recentChat.map((chat) => (
+          <Link href={`/chat/history/${chat.id}`} className="block border rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-medium">{chat.title}</h3>
+                <p className="text-gray-500">{chat.date}</p>
+              </div>
+              <div className="text-gray-400">&gt;</div>
             </div>
-            <div className="text-gray-400">&gt;</div>
-          </div>
-        </Link>
+          </Link>
+        ))}
       </div>
     </div>
-    
   )
 }
 
