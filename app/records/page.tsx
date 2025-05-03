@@ -43,7 +43,7 @@ export async function getChatRecords(): Promise<ChatRecord[]> {
   return [
     {
       id: 1,
-      question: "고양이 눈 관리는 어떻게 해야 하나요?",
+      question: "고양이 눈 건강 관리는 어떻게 해야 하나요?",
       answer: "정기적인 청결 관리와 이상 증상 관찰이 중요합니다.",
     },
   ];
