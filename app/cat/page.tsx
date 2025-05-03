@@ -35,7 +35,6 @@ async function getCat(id: string): Promise<Cat> {
 function CatProfileContent() {
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
-  console.log(id)
   const [catInfo, setCatInfo] = useState<Cat | null>(null);
 
   useEffect(() => {
