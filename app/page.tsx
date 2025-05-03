@@ -149,7 +149,11 @@ export default function HomePage() {
         <h2 className="text-xl font-bold mb-4">최근 진단 기록</h2>
         <div className="space-y-4">
           {recentDiagnoses.map((diagnosis) => (
-            <Link href={`/diagnosis/result?id=${diagnosis.id}`} className="block border rounded-lg p-4">
+            <Link 
+              key={diagnosis.id}
+              href={`/diagnosis/result?id=${diagnosis.id}`} 
+              className="block border rounded-lg p-4"
+            >
               <div className="flex gap-4">
                 <Image src={diagnosis.image} alt={diagnosis.name} width={80} height={80} className="rounded-lg object-cover" />
                 <div>
@@ -163,7 +167,11 @@ export default function HomePage() {
 
         <h2 className="text-xl font-bold mt-8 mb-4">AI 상담 기록</h2>
         {recentChat.map((chat) => (
-          <Link href={`/chat/result?id=${chat.id}`} className="block border rounded-lg p-4">
+          <Link 
+            key={chat.id}
+            href={`/chat/result?id=${chat.id}`} 
+            className="block border rounded-lg p-4"
+          >
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">{chat.title}</h3>
