@@ -1,3 +1,5 @@
+"use client"
+
 import Header from "@/components/header"
 import Link from "next/link"
 import { Bell, HelpCircle, LogOut, FileText, User, Trash2 } from "lucide-react"

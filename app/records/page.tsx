@@ -43,7 +43,7 @@ export async function getChatRecords(): Promise<ChatRecord[]> {
   return [
     {
       id: 1,
-      question: "고양이 눈 건강 관리는 어떻게 해야 하나요?",
+      question: "고양이 눈 관리는 어떻게 해야 하나요?",
       answer: "정기적인 청결 관리와 이상 증상 관찰이 중요합니다.",
     },
   ];
@@ -81,7 +81,7 @@ export default function RecordsPage() {
 
           <div className="space-y-4">
             {diagnosisRecords.map((record) => ( 
-              <Link href={`/diagnosis/result/${record.id}`} className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
+              <Link href={`/diagnosis/result?id=${record.id}`} className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
                 <div className="flex gap-4">
                   <Image
                   src="/images/cat-closeup.png"
@@ -108,7 +108,7 @@ export default function RecordsPage() {
 
           <div className="space-y-4">
             {chatRecords.map((record) => (
-              <Link href={`/chat/result/${record.id}`} className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
+              <Link href={`/chat/result?id=${record.id}`} className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50">
                 <div className="mb-2">
                 <p className="font-medium text-gray-800">Q: {record.question}</p>
                 <p className="text-sm text-gray-600 mt-1">A: {record.answer}</p>

@@ -1,9 +1,10 @@
 "use client"
 
+import { Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Header from "@/components/header"
 import Image from "next/image"
 import { ChatHistory } from "@/lib/types/chat"
-import { useEffect, useState } from "react";
 
 async function getChatHistory(id: string): Promise<ChatHistory> {
   return {
@@ -19,54 +20,59 @@ async function getChatHistory(id: string): Promise<ChatHistory> {
   };
 }
 
-export default function ChatHistoryDetailPage({ params }: { params: { id: string } }) {
+function ChatHistoryContent() {
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id')
   const [chat, setChat] = useState<ChatHistory | null>(null);
 
   useEffect(() => {
+    if (!id) return;
     async function loadChat() {
-      const data = await getChatHistory('1');
+      const data = await getChatHistory(id as string);
       setChat(data);
     }
     loadChat();
-  }, ['1']);
+  }, [id]);
 
   if (!chat) return null;
-  
+
   const theme = chat.mode === "eye"
     ? { bubble: "bg-blue-100", myMsg: "bg-blue-500 text-white", badge: "bg-blue-100 text-blue-700" }
-    : { bubble: "bg-green-100", myMsg: "bg-green-500 text-white", badge: "bg-green-100 text-green-700" }
+    : { bubble: "bg-green-100", myMsg: "bg-green-500 text-white", badge: "bg-green-100 text-green-700" };
 
   return (
     <div className="flex flex-col min-h-screen bg-white pb-16">
-      <Header title="상담 기록" backUrl="/records" />
+      <Header title="상담 기록" backUrl="/chat" />
 
-      <div className="px-4 py-2 border-b">
-        <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${theme.badge}`}>
-          {chat.mode === "eye" ? "👁️ 눈 상담" : "🩺 일반 상담"}
-        </span>
-      </div>
+      <div className="p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${theme.badge}`}>
+            {chat.mode === "eye" ? "눈 건강" : "일반 상담"}
+          </span>
+          <span className="text-gray-500 text-sm">{chat.date}</span>
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chat.messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={msg.from === "user" ? "flex justify-end" : "flex items-start gap-2"}
-          >
-            {msg.from === "bot" && (
-              <Image
-                src="/images/robot-icon.png"
-                alt="AI"
-                width={36}
-                height={36}
-                className="rounded-full"
-              />
-            )}
-            <div className={`p-3 rounded-lg max-w-[80%] whitespace-pre-wrap ${msg.from === "user" ? theme.myMsg : theme.bubble}`}>
-              <p className="text-sm">{msg.text}</p>
+        <div className="space-y-4">
+          {chat.messages.map((message, index) => (
+            <div
+              key={index}
+              className={`p-4 rounded-lg ${
+                message.from === "user" ? `${theme.myMsg} ml-auto` : theme.bubble
+              }`}
+            >
+              {message.text}
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
-  )
+  );
 }
+
+export default function ChatHistoryDetailPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ChatHistoryContent />
+    </Suspense>
+  );
+} 
