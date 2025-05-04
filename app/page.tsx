@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Bell, Settings } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 type RecentDiagnosis = {
   id: number;
@@ -60,10 +61,12 @@ async function getRecentNotification(): Promise<RecentNotification[]> {
 }
 
 export default function HomePage() {
+  const router = useRouter()
   const [showNotifications, setShowNotifications] = useState(false)
   const [recentDiagnoses, setRecentDiagnoses] = useState<RecentDiagnosis[]>([])
   const [recentChat, setRecentChat] = useState<RecentChat[]>([])
   const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const notifRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -76,8 +79,9 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  useEffect(() => {
-    async function loadData() {
+  const loadData = async () => {
+    try {
+      setIsLoading(true)
       const [diagnoses, chat, notifications] = await Promise.all([
         getRecentDiagnoses(),
         getRecentChat(),
@@ -86,11 +90,38 @@ export default function HomePage() {
       setRecentDiagnoses(diagnoses)
       setRecentChat(chat)
       setRecentNotifications(notifications)
+    } catch (error) {
+      console.error('Error loading data:', error)
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
   }, [])
 
-  if (!recentDiagnoses || !recentChat) return null
+  // 페이지 포커스 시 데이터 새로고침
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadData()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
+  if (isLoading) {
+    return <div className="p-4">로딩 중...</div>
+  }
+
+  if (!recentDiagnoses.length && !recentChat.length) {
+    return <div className="p-4">데이터가 없습니다.</div>
+  }
 
   return (
     <div className="pb-16 relative">
@@ -149,7 +180,11 @@ export default function HomePage() {
         <h2 className="text-xl font-bold mb-4">최근 진단 기록</h2>
         <div className="space-y-4">
           {recentDiagnoses.map((diagnosis) => (
-            <Link href={`/diagnosis/result/${diagnosis.id}`} className="block border rounded-lg p-4">
+            <Link 
+              key={diagnosis.id}
+              href={`/diagnosis/result?id=${diagnosis.id}`} 
+              className="block border rounded-lg p-4"
+            >
               <div className="flex gap-4">
                 <Image src={diagnosis.image} alt={diagnosis.name} width={80} height={80} className="rounded-lg object-cover" />
                 <div>
@@ -163,7 +198,11 @@ export default function HomePage() {
 
         <h2 className="text-xl font-bold mt-8 mb-4">AI 상담 기록</h2>
         {recentChat.map((chat) => (
-          <Link href={`/chat/history/${chat.id}`} className="block border rounded-lg p-4">
+          <Link 
+            key={chat.id}
+            href={`/chat/result?id=${chat.id}`} 
+            className="block border rounded-lg p-4"
+          >
             <div className="flex justify-between items-center">
               <div>
                 <h3 className="font-medium">{chat.title}</h3>

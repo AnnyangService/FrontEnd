@@ -78,7 +78,7 @@ export default function ProfilePage() {
         <h3 className="text-lg font-bold mb-4">등록된 고양이</h3>
         <div className="space-y-4 mb-8">
           {user.cats.map(cat => (
-            <Link key={cat.id} href={`/cat/${cat.id}`} className="block border rounded-lg p-4">
+            <Link key={cat.id} href={`/cat?id=${cat.id}`} className="block border rounded-lg p-4">
               <div className="flex gap-4">
                 <Image src={cat.image} alt={cat.name} width={80} height={80} className="rounded-lg object-cover" />
                 <div>

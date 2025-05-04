@@ -1,10 +1,11 @@
 "use client"
 
+import { Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
 import { Edit2 } from "lucide-react"
-import { use, useEffect, useState } from "react"
 import { Cat } from "@/lib/types/cat"
 
 async function getCat(id: string): Promise<Cat> {
@@ -31,14 +32,15 @@ async function getCat(id: string): Promise<Cat> {
   */ 
 }
 
-export default function CatProfilePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params) // ✅ params는 Promise이므로 use()로 불러와야 함
-
+function CatProfileContent() {
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id')
   const [catInfo, setCatInfo] = useState<Cat | null>(null);
 
   useEffect(() => {
+    if (!id) return;
     async function loadCat() {
-      const data = await getCat(id);
+      const data = await getCat(id as string);
       setCatInfo(data);
     }
     loadCat();
@@ -48,7 +50,7 @@ export default function CatProfilePage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="flex flex-col min-h-screen bg-white pb-16">
-      <Header title="고양이 정보" backUrl="/profile"  />
+      <Header title="고양이 정보" backUrl="/profile" />
 
       {/* 이미지 영역 */}
       <div className="relative w-full h-64">
@@ -59,7 +61,7 @@ export default function CatProfilePage({ params }: { params: Promise<{ id: strin
           className="object-cover"
         />
         <Link
-          href={`/cat/${catInfo.id}/edit`}
+          href={`/cat/edit?id=${catInfo.id}`}
           className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"
         >
           <Edit2 className="w-5 h-5 text-gray-700" />
@@ -88,4 +90,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <p className="text-gray-900 text-base">{value}</p>
     </div>
   )
+}
+
+export default function CatProfilePage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <CatProfileContent />
+    </Suspense>
+  );
 }

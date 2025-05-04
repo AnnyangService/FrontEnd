@@ -1,6 +1,7 @@
 "use client"
 
-import { use, useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Header from "@/components/header"
 import Image from "next/image"
 import { DiagnosisResult } from "@/lib/types/diagnosis"
@@ -16,17 +17,15 @@ async function getDiagnosisResult(id: string): Promise<DiagnosisResult> {
   };
 }
 
-export default function DiagnosisResultPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
-}) {
-  const { id } = use(params);
+function DiagnosisResultContent() {
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id')
   const [result, setResult] = useState<DiagnosisResult | null>(null);
 
   useEffect(() => {
+    if (!id) return;
     async function loadResult() {
-      const data = await getDiagnosisResult(id);
+      const data = await getDiagnosisResult(id as string);
       setResult(data);
     }
     loadResult();
@@ -67,4 +66,12 @@ export default function DiagnosisResultPage({
       </div>
     </div>
   )
+}
+
+export default function DiagnosisResultPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DiagnosisResultContent />
+    </Suspense>
+  );
 }
