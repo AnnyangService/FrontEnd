@@ -7,7 +7,8 @@ import { MessagesSquare, Copy, RefreshCw } from "lucide-react"
 interface Message {
   text: string
   from: "user" | "bot"
-  image?: string
+  images?: string[]
+  typing?: boolean
 }
 
 export default function ChatPage() {
@@ -16,8 +17,8 @@ export default function ChatPage() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [selectedImage, setSelectedImage] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string>("")
+  const [selectedImages, setSelectedImages] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -44,12 +45,14 @@ export default function ChatPage() {
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setSelectedImage(file)
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
-    }
+    const files = e.target.files
+    if (!files) return
+  
+    const fileArray = Array.from(files).slice(0, 5) // 최대 5개로 제한
+    const urls = fileArray.map(file => URL.createObjectURL(file))
+  
+    setSelectedImages(fileArray)
+    setPreviewUrls(urls)
   }
 
   /*const handleSend = () => {
@@ -65,36 +68,34 @@ export default function ChatPage() {
   }*/
 
     const handleSend = () => {
-      if (input.trim() === "" && !selectedImage) return
+      if (input.trim() === "" && previewUrls.length === 0) return
     
-      // 1. 사용자 메시지 추가
       setMessages(prev => [
         ...prev,
-        { text: input, from: "user", image: previewUrl }
+        { text: input, from: "user", images: previewUrls },  // ✅ 한 메시지에 이미지들 포함
       ])
     
-      // 2. 봇 타이핑 표시 추가
       setTimeout(() => {
         setMessages(prev => [
           ...prev,
           { text: "", from: "bot", typing: true }
         ])
-      }, 300) // 0.3초 후에 "typing" 표시 추가
+      }, 300)
     
-      // 3. 봇 실제 답변 추가
       setTimeout(() => {
         setMessages(prev => [
-          ...prev.slice(0, -1), // typing 메시지 지우고
+          ...prev.slice(0, -1),
           { text: "ai답변이런식으로 나옵니다.", from: "bot" }
         ])
-      }, 1800) // typing 후 시간지나면 추가
+      }, 1800)
     
-      // 4. 입력창 초기화
       setInput("")
-      setSelectedImage(null)
-      setPreviewUrl("")
+      setSelectedImages([])
+      setPreviewUrls([])
       if (inputRef.current) inputRef.current.style.height = "auto"
     }
+    
+    
     
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -115,6 +116,7 @@ export default function ChatPage() {
       <input
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         ref={fileInputRef}
         onChange={handleFileChange}
@@ -181,11 +183,13 @@ export default function ChatPage() {
       </div>
 
       {/* 이미지 미리보기 */}
-      {previewUrl && (
-        <div className="absolute bottom-[120px] left-4 z-30">
-          <img src={previewUrl} alt="preview" className="w-16 h-16 object-cover rounded-lg border" />
-        </div>
-      )}
+      {previewUrls.length > 0 && (
+  <div className="fixed bottom-32 md:bottom-40 left-4 w-fit z-20 flex gap-2 overflow-x-auto px-4">
+    {previewUrls.map((url, idx) => (
+      <img key={idx} src={url} alt={`preview-${idx}`} className="w-16 h-16 object-cover rounded-lg border" />
+    ))}
+  </div>
+)}
 
       {/* 메시지 리스트 */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-[120px]">
@@ -195,8 +199,8 @@ export default function ChatPage() {
           text={msg.text}
           from={msg.from}
           theme={theme}
-          image={msg.image}
-          typing={(msg as any).typing}  // ✅ typing 전달
+          images={(msg as any).images}
+          typing={(msg as any).typing}  
           onCopy={() => handleCopy(msg.text)}
           onRegenerate={msg.from === "user" ? () => alert("응답 재생성") : undefined}
         />
@@ -236,18 +240,22 @@ export default function ChatPage() {
   )
 }*/
 
-function ChatBubble({ text, from, theme, onCopy, onRegenerate, image, typing }: {
-  text: React.ReactNode;
-  from: "bot" | "user";
-  theme: any;
-  onCopy?: () => void;
-  onRegenerate?: () => void;
-  image?: string;
-  typing?: boolean;
+function ChatBubble({
+  text, from, theme, onCopy, onRegenerate, images, typing
+}: {
+  text: React.ReactNode
+  from: "bot" | "user"
+  theme: any
+  onCopy?: () => void
+  onRegenerate?: () => void
+  images?: string[]
+  typing?: boolean
 }) {
   return (
     <div className={from === "bot" ? "flex items-start gap-2" : "flex justify-end"}>
-      {from === "bot" && <Image src="/images/robot-icon.png" alt="AI" width={40} height={40} className="rounded-full" />}
+      {from === "bot" && (
+        <Image src="/images/robot-icon.png" alt="AI" width={40} height={40} className="rounded-full" />
+      )}
       <div className={`${from === "bot" ? theme.bubble : theme.myMsg} ${from === "bot" ? "text-black" : "text-white"} p-3 rounded-lg max-w-[80%] break-words`}>
         
         {typing ? (
@@ -258,14 +266,28 @@ function ChatBubble({ text, from, theme, onCopy, onRegenerate, image, typing }: 
           </div>
         ) : (
           <>
-            {image && <img src={image} alt="attachment" className="w-32 h-32 object-cover rounded-lg mb-2" />}
+            {images && images.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2 mb-2">
+                {images.map((img, idx) => (
+                  <img key={idx} src={img} alt={`img-${idx}`} className="w-32 h-32 object-cover rounded-lg border shrink-0" />
+                ))}
+              </div>
+            )}
             <p>{text}</p>
           </>
         )}
 
         <div className="flex justify-end gap-2 mt-2 text-sm text-white">
-          {onCopy && <button onClick={onCopy} className="hover:text-black" title="복사"><Copy className="w-4 h-4 inline" /></button>}
-          {onRegenerate && <button onClick={onRegenerate} className="hover:text-black" title="재생성"><RefreshCw className="w-4 h-4 inline" /></button>}
+          {onCopy && (
+            <button onClick={onCopy} className="hover:text-black" title="복사">
+              <Copy className="w-4 h-4 inline" />
+            </button>
+          )}
+          {onRegenerate && (
+            <button onClick={onRegenerate} className="hover:text-black" title="재생성">
+              <RefreshCw className="w-4 h-4 inline" />
+            </button>
+          )}
         </div>
       </div>
     </div>
