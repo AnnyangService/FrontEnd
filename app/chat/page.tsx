@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
-import { MessagesSquare, Copy, RefreshCw } from "lucide-react"
+import { MessagesSquare, Copy, RefreshCw, MoreHorizontal } from "lucide-react"
 
 interface Message {
   text: string
@@ -19,6 +19,13 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [selectedImages, setSelectedImages] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
+  const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null)
+  const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
+  const [newChatName, setNewChatName] = useState("");
+  const [activeChatIndex, setActiveChatIndex] = useState(0);
+
+
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -28,13 +35,32 @@ export default function ChatPage() {
     ? { bg: "bg-white", bubble: "bg-blue-100", myMsg: "bg-blue-500", text: "text-blue-800" }
     : { bg: "bg-white", bubble: "bg-green-100", myMsg: "bg-green-500", text: "text-green-800" }
 
-  const chatList = ["가나다라마바사", "고양이대한질문", "고양이눈질병"]
+    const [chatList, setChatList] = useState([
+      { name: "가나다라마바사", mode: "eye" },
+      { name: "고양이대한질문", mode: "general" },
+      { name: "고양이눈질병", mode: "eye" },
+    ]);
+    
+    
+    const active_chatname = chatList[activeChatIndex]?.name; //현재 채팅 일단 임의로 설정
+
+   
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false)
       }
+
+      // 메뉴가 열려있고 클릭한 곳이 메뉴가 아닐 때
+      const menuElements = document.querySelectorAll(".menu-popup")
+    const isInMenu = Array.from(menuElements).some(el =>
+      el.contains(event.target as Node)
+    )
+
+    if (!isInMenu) {
+      setActiveMenuIndex(null)
+    }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
@@ -65,6 +91,18 @@ export default function ChatPage() {
     setPreviewUrls(prev => prev.filter((_, i) => i !== idx))
     setSelectedImages(prev => prev.filter((_, i) => i !== idx))
   }
+
+   //채팅 이름변경
+  const applyRename = () => {
+    if (renamingIndex === null || !newChatName.trim()) return;
+    setChatList(prev =>
+      prev.map((chat, idx) =>
+        idx === renamingIndex ? { ...chat, name: newChatName.trim() } : chat
+      )
+    );
+    setRenamingIndex(null);
+  };
+  
 
   /*const handleSend = () => {
     if (input.trim() === "" && !selectedImage) return
@@ -149,13 +187,77 @@ export default function ChatPage() {
       >
         <div className="p-4 border-b font-semibold">채팅 목록</div>
         <div className="p-4 space-y-3 overflow-y-auto max-h-full">
-          {chatList.map((chat, idx) => (
-            <div
-              key={idx}
-              className="py-4 text-lg text-center rounded-md bg-white text-gray-900 transition-colors duration-200 hover:bg-black hover:text-white cursor-pointer"
-            >
-              {chat}
-            </div>
+        {chatList.map((chat, idx) => (
+  <div
+    key={idx}
+    className={`flex items-center justify-between px-3 py-4 text-lg rounded-md transition-colors duration-200 cursor-pointer relative ${
+      activeChatIndex === idx ? "bg-gray-200" : "bg-white hover:bg-gray-100"
+    }`}
+  >
+    <div className="flex-1">
+      {renamingIndex === idx ? (
+        <input
+          type="text"
+          value={newChatName}
+          onChange={(e) => setNewChatName(e.target.value)}
+          onBlur={applyRename}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault()
+              applyRename()
+            }
+          }}
+          autoFocus
+          className="border-b border-gray-400 focus:outline-none px-1 py-0.5 w-full text-base"
+        />
+      ) : (
+        <span>{chat.name}</span>
+      )}
+    </div>
+    <button
+      className="p-1 hover:bg-gray-100 rounded"
+      onClick={(e) => {
+        e.stopPropagation()
+        const rect = e.currentTarget.getBoundingClientRect()
+        setActiveMenuIndex(activeMenuIndex === idx ? null : idx)
+        setMenuPosition({ top: rect.top + rect.height / 2, left: rect.right + 8 })
+      }}
+    >
+      <MoreHorizontal className="w-5 h-5 text-gray-600" />
+            </button>
+            {activeMenuIndex === idx && menuPosition && (
+  <div
+    className="fixed z-50 w-32 bg-white border rounded shadow menu-popup"
+    style={{
+      top: `${menuPosition.top}px`,
+      left: `${menuPosition.left}px`,
+      transform: "translateY(-50%)", // 버튼 가운데 정렬
+    }}
+  >
+    <button
+      onClick={() => {
+        setRenamingIndex(idx)
+        setNewChatName(chat.name)
+        setActiveMenuIndex(null)
+
+      }}
+      className="block w-full text-left px-4 py-2 hover:bg-gray-100"
+    >
+      이름 변경
+    </button>
+    <button
+      onClick={() => {
+        alert("삭제");
+        setActiveMenuIndex(null)
+      }}
+      className="block w-full text-left px-4 py-2 hover:bg-red-100 text-red-600"
+    >
+      삭제
+    </button>
+  </div>
+)}
+
+          </div>    
           ))}
         </div>
       </div>
@@ -169,7 +271,7 @@ export default function ChatPage() {
           >
             &#9776;
           </button>
-          <div className="text-lg font-semibold text-gray-900">채팅 이름</div>
+          <div className="text-lg font-semibold text-gray-900">{active_chatname}</div>
         </div>
         <div className="flex items-center gap-2" ref={dropdownRef}>
           <button className="p-2 text-gray-600 hover:text-black">
@@ -247,6 +349,7 @@ export default function ChatPage() {
           <button className="p-2" onClick={handleSend}><Image src="/images/airplane-image.png?height=24&width=24" alt="전송" width={24} height={24} /></button>
         </div>
       </div>
+      
     </div>
   )
 }
