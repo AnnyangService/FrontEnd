@@ -48,11 +48,22 @@ export default function ChatPage() {
     const files = e.target.files
     if (!files) return
   
-    const fileArray = Array.from(files).slice(0, 5) // 최대 5개로 제한
+    const fileArray = Array.from(files)
+
+    if(fileArray.length >5){
+      alert("최대 5개의 이미지만 첨부할 수 있습니다.")
+      return
+    }
+
     const urls = fileArray.map(file => URL.createObjectURL(file))
   
     setSelectedImages(fileArray)
     setPreviewUrls(urls)
+  }
+
+  const handleRemoveImage = (idx: number) => {
+    setPreviewUrls(prev => prev.filter((_, i) => i !== idx))
+    setSelectedImages(prev => prev.filter((_, i) => i !== idx))
   }
 
   /*const handleSend = () => {
@@ -186,7 +197,20 @@ export default function ChatPage() {
       {previewUrls.length > 0 && (
   <div className="fixed bottom-32 md:bottom-40 left-4 w-fit z-20 flex gap-2 overflow-x-auto px-4">
     {previewUrls.map((url, idx) => (
-      <img key={idx} src={url} alt={`preview-${idx}`} className="w-16 h-16 object-cover rounded-lg border" />
+      <div key={idx} className="relative w-16 h-16 shrink-0 overflow-visible">
+        <img
+          src={url}
+          alt={`preview-${idx}`}
+          className="w-16 h-16 object-cover rounded-lg border"
+        />
+        <button
+          onClick={() => handleRemoveImage(idx)}
+          className="absolute -top-0 -right-0 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow"
+          title="삭제"
+        >
+          ×
+        </button>
+      </div>
     ))}
   </div>
 )}
