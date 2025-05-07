@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 import Header from "@/components/header"
 import Link from "next/link"
 import Image from "next/image"
 import { Calendar, MessageSquare } from "lucide-react"
 import { UserInfo } from "@/lib/types/profile"
+import { useEffect } from "react"
+import { useState } from "react"
 
-async function getUserInfo(): Promise<UserInfo> {
+async function getUserInfo(id: string): Promise<UserInfo> {
   return {
     name: "홍길동동",
     email: "kildong@email.com",
@@ -33,17 +35,18 @@ async function getUserInfo(): Promise<UserInfo> {
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const { user } = useAuth();
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
   useEffect(() => {
-    async function loadUserInfo() {
-      const data = await getUserInfo();
-      setUser(data);
+    async function loadUserInfo(id: string) {
+      const data = await getUserInfo(id);
+      setUserInfo(data);
     }
-    loadUserInfo();
+    loadUserInfo(user?.id || '');
   }, []);
 
-  if (!user) return null;
+  if (!userInfo) return null;
 
   return (
     <div className="flex flex-col min-h-screen bg-white pb-16">
@@ -53,8 +56,8 @@ export default function ProfilePage() {
         <div className="flex items-center gap-4 mb-8">
           <div className="w-16 h-16 bg-gray-200 rounded-full" />
           <div>
-            <h2 className="text-xl font-bold">{user.name}</h2>
-            <p className="text-gray-500">{user.email}</p>
+            <h2 className="text-xl font-bold">{userInfo.name}</h2>
+            <p className="text-gray-500">{userInfo.email}</p>
           </div>
         </div>
 
@@ -64,20 +67,20 @@ export default function ProfilePage() {
               <Calendar className="w-4 h-4" />
               <span className="text-sm">진단 기록</span>
             </div>
-            <p className="text-2xl font-bold">{user.recordCount}건</p>
+            <p className="text-2xl font-bold">{userInfo.recordCount}건</p>
           </div>
           <div className="flex-1 bg-green-50 p-4 rounded-lg">
             <div className="flex items-center gap-2 text-green-600 mb-1">
               <MessageSquare className="w-4 h-4" />
               <span className="text-sm">AI 상담</span>
             </div>
-            <p className="text-2xl font-bold">{user.chatCount}건</p>
+            <p className="text-2xl font-bold">{userInfo.chatCount}건</p>
           </div>
         </div>
 
         <h3 className="text-lg font-bold mb-4">등록된 고양이</h3>
         <div className="space-y-4 mb-8">
-          {user.cats.map(cat => (
+          {userInfo.cats.map(cat => (
             <Link key={cat.id} href={`/cat?id=${cat.id}`} className="block border rounded-lg p-4">
               <div className="flex gap-4">
                 <Image src={cat.image} alt={cat.name} width={80} height={80} className="rounded-lg object-cover" />
