@@ -56,9 +56,17 @@ function ChatHistoryContent() {
           {chat.messages.map((message, index) => (
             <div
               key={index}
-              className={`p-4 rounded-lg ${
-                message.from === "user" ? `${theme.myMsg} ml-auto` : theme.bubble
-              }`}
+              className={`p-4 rounded-lg max-w-[70%] ${
+                message.from === "user" 
+                ? `ml-auto bg-blue-500 text-white rounded-3xl rounded-br-none 
+                before:content-[''] before:absolute before:right-[-12px] before:top-[12px]
+                before:w-0 before:h-0 before:border-[12px] before:border-transparent
+                before:border-l-blue-500`
+                : `bg-blue-100 text-gray-800 rounded-3xl rounded-bl-none 
+                before:content-[''] before:absolute before:left-[-12px] before:top-[12px]
+                before:w-0 before:h-0 before:border-[12px] before:border-transparent
+                before:border-r-blue-100`
+                 }`}
             >
               {message.text}
             </div>

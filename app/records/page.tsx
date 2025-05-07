@@ -3,8 +3,8 @@
 import Header from "@/components/header"
 import Link from "next/link"
 import Image from "next/image"
-import { useEffect } from "react";
-import { useState } from "react";
+import { useRef, useEffect, useState } from "react";
+
 
 export type DiagnosisRecord = {
   id: number;
