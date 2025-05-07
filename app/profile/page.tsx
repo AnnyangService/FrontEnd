@@ -62,21 +62,23 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex gap-4 mb-8">
-          <div className="flex-1 bg-blue-50 p-4 rounded-lg">
+         <Link href="/records" className="flex-1 bg-blue-50 p-4 rounded-lg block">
             <div className="flex items-center gap-2 text-blue-600 mb-1">
               <Calendar className="w-4 h-4" />
               <span className="text-sm">진단 기록</span>
             </div>
-            <p className="text-2xl font-bold">{userInfo.recordCount}건</p>
-          </div>
-          <div className="flex-1 bg-green-50 p-4 rounded-lg">
-            <div className="flex items-center gap-2 text-green-600 mb-1">
-              <MessageSquare className="w-4 h-4" />
-              <span className="text-sm">AI 상담</span>
-            </div>
-            <p className="text-2xl font-bold">{userInfo.chatCount}건</p>
-          </div>
+           <p className="text-2xl font-bold">{userInfo.recordCount}건</p>
+         </Link>
+
+          <Link href="/records" className="flex-1 bg-green-50 p-4 rounded-lg block">
+           <div className="flex items-center gap-2 text-green-600 mb-1">
+            <MessageSquare className="w-4 h-4" />
+            <span className="text-sm">AI 상담</span>
+           </div>
+          <p className="text-2xl font-bold">{userInfo.chatCount}건</p>
+          </Link>
         </div>
+
 
         <h3 className="text-lg font-bold mb-4">등록된 고양이</h3>
         <div className="space-y-4 mb-8">
