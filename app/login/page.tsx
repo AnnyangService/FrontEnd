@@ -1,16 +1,26 @@
 "use client"
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
-import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { login } = useAuth();
 
-  const handleLogin = () => {
-    // 여기에다 이메일, 비밀번호 보내는 로직 작성?
-    console.log("Login with:", email, password);
+  const handleLogin = async () => {
+    try {
+      console.log("Login with:", email, password);
+      await login(email, password);
+      router.push('/');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');
+    }
   };
 
   return (
@@ -19,6 +29,10 @@ export default function LoginPage() {
 
       <div className="flex-1 p-6 flex flex-col justify-start">
         <div className="space-y-6">
+          {error && (
+            <div className="text-red-500 text-sm">{error}</div>
+          )}
+          
           <div>
             <label className="block text-gray-700 mb-2">이메일</label>
             <input
@@ -54,7 +68,6 @@ export default function LoginPage() {
             <span>|</span>
             <a href="/signup" className="hover:underline">회원가입</a>
           </div>
-
         </div>
       </div>
 
