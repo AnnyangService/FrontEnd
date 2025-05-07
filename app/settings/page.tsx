@@ -3,8 +3,17 @@
 import Header from "@/components/header"
 import Link from "next/link"
 import { Bell, HelpCircle, LogOut, FileText, User, Trash2 } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import AuthGuard from "@/components/auth-guard"
 
 export default function SettingsPage() {
+  const { logout } = useAuth();
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    await logout();
+  };
+
   return (
     <div className="pb-16">
       <Header title="설정" backUrl="/" />
@@ -45,13 +54,16 @@ export default function SettingsPage() {
         </div>
 
         <div className="border rounded-lg overflow-hidden">
-          <Link href="/logout" className="flex items-center justify-between p-4 border-b">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between p-4 border-b hover:bg-gray-50"
+          >
             <div className="flex items-center">
               <LogOut className="w-6 h-6 mr-4" />
               <span>로그아웃</span>
             </div>
             <div className="text-gray-400">&gt;</div>
-          </Link>
+          </button>
 
           <Link href="/delete-account" className="flex items-center justify-between p-4">
             <div className="flex items-center">
