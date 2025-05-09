@@ -1,35 +1,22 @@
 "use client"
 
 import { Suspense, useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { notFound, useSearchParams } from "next/navigation"
 import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
 import { Edit2 } from "lucide-react"
 import { Cat } from "@/lib/types/cat"
+import { API_ENDPOINTS } from "@/lib/constants"
+import { fetchApi } from "@/lib/fetch-api"
 
 async function getCat(id: string): Promise<Cat> {
-  // 임시 데이터 (API 연동 전까지 사용)
-  return {
-    id,
-    name: "미오",
-    image: "/images/cat-closeup.png",
-    birthDate: "2023년 3월 15일",
-    breed: "노랑이",
-    gender: "암컷",
-    weight: "4.2kg",
-    lastDiagnosis: "2025.02.15",
-    specialNotes: "알레르기 있음 (생선)",
-  };
-
-  /** 실제 API 연동 시에는 아래 주석 해제
   try {
-    return await fetchApi<Cat>(`/cats/${id}`);
+    const response = await fetchApi<Cat>(API_ENDPOINTS.GET_CAT(id));
+    return response.data;
   } catch (error) {
-    // app/cat/[id]/error.tsx
     notFound();
   }
-  */ 
 }
 
 function CatProfileContent() {
@@ -75,7 +62,7 @@ function CatProfileContent() {
         <InfoRow label="생년월일" value={catInfo.birthDate} />
         <InfoRow label="품종" value={catInfo.breed} />
         <InfoRow label="성별" value={catInfo.gender} />
-        <InfoRow label="체중" value={catInfo.weight} />
+        <InfoRow label="체중(kg)" value={catInfo.weight?.toString()} />
         <InfoRow label="최근 진단" value={catInfo.lastDiagnosis} />
         <InfoRow label="특이사항" value={catInfo.specialNotes} />
       </div>

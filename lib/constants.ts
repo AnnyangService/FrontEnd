@@ -5,6 +5,8 @@ export const API_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/auth/login`,
   LOGOUT: `${API_BASE_URL}/auth/logout`,
   MY_INFO: `${API_BASE_URL}/auth/me`,
+  GET_CAT_LIST: `${API_BASE_URL}/cats`,
+  GET_CAT: (id: string) => `${API_BASE_URL}/cats/${id}`,
 } as const;
 
 export const PUBLIC_PATHS = ['/login', '/signup'];
