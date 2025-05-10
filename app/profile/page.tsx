@@ -8,29 +8,19 @@ import { Calendar, MessageSquare } from "lucide-react"
 import { UserInfo } from "@/lib/types/profile"
 import { useEffect } from "react"
 import { useState } from "react"
+import { fetchApi } from "@/lib/fetch-api"
+import { API_ENDPOINTS } from "@/lib/constants"
+import { Cat } from "@/lib/types/cat"
+import { formatBirthDateToKorean } from "@/lib/utils/date"
 
 async function getUserInfo(id: string): Promise<UserInfo> {
+  const catLists = await fetchApi<Cat[]>(API_ENDPOINTS.GET_CAT_LIST);
   return {
     name: "홍길동동",
     email: "kildong@email.com",
     recordCount: 12,
     chatCount: 8,
-    cats: [
-      {
-        id: 1,
-        name: "미오",
-        birthDate: "2023년 3월 15일생",
-        recentDiagnosis: "2025.02.15",
-        image: "/images/cat-mio.png"
-      },
-      {
-        id: 2,
-        name: "나비",
-        birthDate: "2022년 8월 10일생",
-        recentDiagnosis: "2025.02.14",
-        image: "/images/cat-nabi.png"
-      }
-    ]
+    cats: catLists.data,
   };
 }
 
@@ -88,8 +78,8 @@ export default function ProfilePage() {
                 <Image src={cat.image} alt={cat.name} width={80} height={80} className="rounded-lg object-cover" />
                 <div>
                   <h4 className="font-bold">{cat.name}</h4>
-                  <p className="text-gray-500">{cat.birthDate}</p>
-                  <p className="text-gray-500">최근 진단: {cat.recentDiagnosis}</p>
+                  <p className="text-gray-500">{formatBirthDateToKorean(cat.birthDate)}</p>
+                  <p className="text-gray-500">최근 진단: {cat.lastDiagnosis}</p>
                 </div>
               </div>
             </Link>

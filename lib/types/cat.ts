@@ -1,11 +1,13 @@
 export interface Cat {
   id: string;
+  createdAt: string;
+  updatedAt: string;
   name: string;
   image: string;
   birthDate: string;
   breed: string;
-  gender: string;
-  weight: string;
+  gender: 'FEMALE' | 'MALE';
+  weight: number;
   lastDiagnosis: string;
   specialNotes: string;
 }
