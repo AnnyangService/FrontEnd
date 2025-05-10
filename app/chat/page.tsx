@@ -4,11 +4,26 @@ import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import { MessagesSquare, Copy, RefreshCw, MoreHorizontal } from "lucide-react"
 
+
 interface Message {
   text: string
   from: "user" | "bot"
   images?: string[]
   typing?: boolean
+}
+
+export type ChatInfo = {
+  id: number
+  name: string
+  mode: "eye" | "general"
+}
+
+export async function getChatList(): Promise<ChatInfo[]> {
+  return [
+    { id: 1, name: "가나다라마바사", mode: "eye" },
+    { id: 2, name: "고양이대한질문", mode: "general" },
+    { id: 3, name: "고양이눈질병", mode: "eye" }
+  ]
 }
 
 export default function ChatPage() {
@@ -23,8 +38,8 @@ export default function ChatPage() {
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null)
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [newChatName, setNewChatName] = useState("");
-  const [activeChatIndex, setActiveChatIndex] = useState(0);
-
+  const [chatList, setChatList] = useState<ChatInfo[]>([]);
+  const [activeChatIndex, setActiveChatIndex] = useState<number>(0);
 
 
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -35,18 +50,17 @@ export default function ChatPage() {
     ? { bg: "bg-white", bubble: "bg-blue-100", myMsg: "bg-blue-500", text: "text-blue-800" }
     : { bg: "bg-white", bubble: "bg-green-100", myMsg: "bg-green-500", text: "text-green-800" }
 
-    const [chatList, setChatList] = useState([
-      { name: "가나다라마바사", mode: "eye" },
-      { name: "고양이대한질문", mode: "general" },
-      { name: "고양이눈질병", mode: "eye" },
-    ]);
-    
     
     const active_chatname = chatList[activeChatIndex]?.name; //현재 채팅 일단 임의로 설정
 
    
 
   useEffect(() => {
+    async function loadChats() {
+      const chatList = await getChatList()
+      setChatList(chatList)
+    }
+    loadChats()
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false)
@@ -62,9 +76,13 @@ export default function ChatPage() {
       setActiveMenuIndex(null)
     }
     }
+    
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+
+  
 
   const handleAttachClick = () => {
     fileInputRef.current?.click()
@@ -102,19 +120,6 @@ export default function ChatPage() {
     );
     setRenamingIndex(null);
   };
-  
-
-  /*const handleSend = () => {
-    if (input.trim() === "" && !selectedImage) return
-    setMessages(prev => [
-      ...prev,
-      { text: input, from: "user", image: previewUrl }
-    ])
-    setInput("")
-    setSelectedImage(null)
-    setPreviewUrl("")
-    if (inputRef.current) inputRef.current.style.height = "auto"
-  }*/
 
     const handleSend = () => {
       if (input.trim() === "" && previewUrls.length === 0) return
@@ -159,7 +164,10 @@ export default function ChatPage() {
     navigator.clipboard.writeText(text)
   }
 
+
+
   return (
+    
     <div className={`flex flex-col h-screen ${theme.bg} transition-colors duration-300 relative`}>
       {/* 숨은 파일 입력 */}
       <input
@@ -277,21 +285,10 @@ export default function ChatPage() {
           <button className="p-2 text-gray-600 hover:text-black">
             <MessagesSquare className="w-5 h-5" />
           </button>
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white hover:bg-gray-50 transition"
-          >
-            {mode === "eye" ? "👁️ 눈 상담" : "🩺 일반 상담"}
-            <svg className="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
-            </svg>
-          </button>
-          {dropdownOpen && (
-            <div className="absolute top-full right-0 mt-2 w-40 bg-white border rounded shadow z-50">
-              <button onClick={() => setDropdownOpen(false)} className="w-full text-left px-4 py-2 hover:bg-gray-100">👁️ 눈 상담</button>
-              <button onClick={() => setDropdownOpen(false)} className="w-full text-left px-4 py-2 hover:bg-gray-100">🩺 일반 상담</button>
-            </div>
-          )}
+          <div className="text-sm text-blue-700 border border-blue-200 bg-blue-50 px-2 py-1 rounded-md">
+  {mode === "eye" ? "👀 눈 상담" : "🩺 일반 상담"}
+</div>
+
         </div>
       </div>
 
@@ -353,19 +350,6 @@ export default function ChatPage() {
     </div>
   )
 }
-
-/*function ChatBubble({ text, from, theme, onCopy, onRegenerate, image }: { text: React.ReactNode; from: "bot" | "user"; theme: any; onCopy?: () => void; onRegenerate?: () => void; image?: string }) {
-  return (
-    <div className={from === "bot" ? "flex items-start gap-2" : "flex justify-end"}>
-      {from === "bot" && <Image src="/images/robot-icon.png" alt="AI" width={40} height={40} className="rounded-full" />}
-      <div className={`${from === "bot" ? theme.bubble : theme.myMsg} ${from === "bot" ? "text-black" : "text-white"} p-3 rounded-lg max-w-[80%] break-words`}>        
-        {image && <img src={image} alt="attachment" className="w-32 h-32 object-cover rounded-lg mb-2" />}
-        <p>{text}</p>
-        <div className="flex justify-end gap-2 mt-2 text-sm text-white">{onCopy && <button onClick={onCopy} className="hover:text-black" title="복사"><Copy className="w-4 h-4 inline" /></button>}{onRegenerate && <button onClick={onRegenerate} className="hover:text-black" title="재생성"><RefreshCw className="w-4 h-4 inline" /></button>}</div>
-      </div>
-    </div>
-  )
-}*/
 
 function ChatBubble({
   text, from, theme, onCopy, onRegenerate, images, typing
