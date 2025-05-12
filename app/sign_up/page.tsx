@@ -19,6 +19,14 @@ export default function SignupPage() {
   const isValidEmail = (email: string) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
+const isValidPassword = (password: string) => password.length >= 8;
+const [passwordTouched, setPasswordTouched] = useState(false);
+const isFormInvalid =
+  !name.trim() ||
+  !isValidEmail(email) ||
+  !isValidPassword(password);
+
+
 const [emailTouched, setEmailTouched] = useState(false);
 
   const handleSignup = async () => {
@@ -73,21 +81,32 @@ const [emailTouched, setEmailTouched] = useState(false);
 
           <div>
             <label className="block text-gray-700 mb-2">비밀번호</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="비밀번호를 입력하세요"
-              className="w-full p-3 border rounded-lg"
-            />
+             <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => setPasswordTouched(true)}
+                placeholder="비밀번호를 입력하세요"
+                className={`w-full p-3 border rounded-lg transition-colors focus:outline-none focus:ring-0
+                  ${passwordTouched && !isValidPassword(password) ? 'border-red-500' : ''}
+                  ${passwordTouched && isValidPassword(password) ? 'border-blue-500' : ''}`}
+              />
+              {passwordTouched && !isValidPassword(password) && (
+                <p className="text-red-500 text-sm mt-1">비밀번호는 8자 이상이어야 합니다.</p>
+              )}
           </div>
 
           <button
-            onClick={handleSignup}
-            className="w-full bg-green-500 text-white p-4 rounded-lg mt-4 hover:bg-green-600 active:bg-green-700 transition-colors"
-          >
-            회원가입
+              onClick={handleSignup}
+              disabled={isFormInvalid}
+              className={`w-full p-4 rounded-lg mt-4 transition-colors
+                ${isFormInvalid
+                  ? 'bg-gray-300 text-white cursor-not-allowed'
+                  : 'bg-green-500 text-white hover:bg-green-600 active:bg-green-700'}`}
+            >
+              회원가입
           </button>
+
         </div>
       </div>
 
