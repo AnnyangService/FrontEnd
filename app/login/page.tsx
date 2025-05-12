@@ -66,7 +66,7 @@ export default function LoginPage() {
             <span>|</span>
             <a href="/find-password" className="hover:underline">비밀번호 찾기</a>
             <span>|</span>
-            <a href="/signup" className="hover:underline">회원가입</a>
+            <a href="/sign_up" className="hover:underline">회원가입</a>
           </div>
         </div>
       </div>

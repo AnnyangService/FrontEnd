@@ -2,17 +2,40 @@
 
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
+import { useAuthSignup } from "@/hooks/use-signup";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+
+
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const { signup, loading} = useAuthSignup();
+  const router = useRouter();
+  const isValidEmail = (email: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+const [emailTouched, setEmailTouched] = useState(false);
 
-  const handleSignup = () => {
-    // TODO: 회원가입 로직 구현
+  const handleSignup = async () => {
+  try {
     console.log("Signup with:", name, email, password);
-  };
+    await signup(name, email, password);
+    router.push('/login');
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : '회원가입에 실패했습니다.';
+
+    if (msg === "Email already exists") {
+      alert("이미 존재하는 아이디입니다."); 
+    } else {
+      setError(msg); 
+    }
+  }
+}
 
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto bg-white">
@@ -37,9 +60,15 @@ export default function SignupPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
               placeholder="이메일을 입력하세요"
-              className="w-full p-3 border rounded-lg"
+              className={`w-full p-3 border rounded-lg transition-colors focus:outline-none focus:ring-0
+                ${emailTouched && !isValidEmail(email) ? 'border-red-500' : ''} 
+                ${emailTouched && isValidEmail(email) ? 'border-blue-500' : ''}`}
             />
+            {emailTouched && !isValidEmail(email) && (
+              <p className="text-red-500 text-sm mt-1">올바른 이메일 형식이 아닙니다.</p>
+            )}
           </div>
 
           <div>
