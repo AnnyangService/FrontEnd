@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { API_ENDPOINTS } from '@/lib/constants';
 
+/*지금 id어케얻는지 몰라서 일단 구조만 잡아둠, 3차발표 끝나고 나중에 id읽어오는부분만 수정하기 */
+
 export function useAuthSignup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

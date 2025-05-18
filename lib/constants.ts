@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
   MY_INFO: `${API_BASE_URL}/auth/me`,
   GET_CAT_LIST: `${API_BASE_URL}/cats`,
   REGISTER_CAT: `${API_BASE_URL}/cats`,
+  UPDATE_MEMBER: (id: string) => `${API_BASE_URL}/members/${id}`,
   GET_CAT: (id: string) => `${API_BASE_URL}/cats/${id}`,
 } as const;
 

@@ -70,9 +70,41 @@ export function useAuth() {
     router.push('/login');
   };
 
+  const updateUser = async (id: string, updatedData: {
+  email: string;
+  password: string;
+  name: string;
+}) => {
+  try {
+    const response = await fetch(`${API_ENDPOINTS.UPDATE_MEMBER(id)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(updatedData),
+    });
+
+    const data = await response.json();
+
+    console.log("회원 수정 정보:", data);
+
+    if (!response.ok || data.success === false) {
+      throw new Error(data?.error?.message || '회원정보 수정에 실패했습니다.');
+    }
+
+    // 성공적으로 수정되었으면 사용자 정보 다시 갱신
+    await checkAuth();
+    return data.data; // 필요 시 수정된 데이터 반환
+  } catch (error) {
+    throw error;
+  }
+};
+
   return {
     user,
     loading,
+    updateUser,
     login,
     logout,
     checkAuth,

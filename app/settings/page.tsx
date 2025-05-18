@@ -28,10 +28,10 @@ export default function SettingsPage() {
             <div className="text-gray-400">&gt;</div>
           </Link>
 
-          <Link href="/settings/account" className="flex items-center justify-between p-4 border-b">
+          <Link href="/update_user" className="flex items-center justify-between p-4 border-b">
             <div className="flex items-center">
               <User className="w-6 h-6 mr-4" />
-              <span>계정 관리</span>
+              <span>계정 정보 수정</span>
             </div>
             <div className="text-gray-400">&gt;</div>
           </Link>
