@@ -5,7 +5,7 @@ import { notFound, useSearchParams } from "next/navigation"
 import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
-import { Edit2 } from "lucide-react"
+import { Edit2, Cat as CatIcon } from "lucide-react"
 import { Cat } from "@/lib/types/cat"
 import { API_ENDPOINTS } from "@/lib/constants"
 import { fetchApi } from "@/lib/fetch-api"
@@ -49,8 +49,9 @@ function CatProfileContent() {
               className="object-cover"
             />
           ) : (
-            // 이미지가 없으면 아무 것도 렌더링하지 않거나 빈 박스 유지
-            <div className="w-full h-full" />
+            <div className="w-full h-full flex items-center justify-center">
+              <CatIcon className="w-20 h-20 text-gray-400" />
+            </div>
           )}
         <Link
           href={`/cat/edit?id=${catInfo.id}`}
