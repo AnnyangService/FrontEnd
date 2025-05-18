@@ -41,12 +41,17 @@ function CatProfileContent() {
 
       {/* 이미지 영역 */}
       <div className="relative w-full h-64">
-        <Image
-          src={catInfo.image}
-          alt={catInfo.name}
-          fill
-          className="object-cover"
-        />
+         {catInfo.image ? (
+            <Image
+              src={catInfo.image}
+              alt={catInfo.name}
+              fill
+              className="object-cover"
+            />
+          ) : (
+            // 이미지가 없으면 아무 것도 렌더링하지 않거나 빈 박스 유지
+            <div className="w-full h-full" />
+          )}
         <Link
           href={`/cat/edit?id=${catInfo.id}`}
           className="absolute top-4 right-4 bg-white p-2 rounded-full shadow"

@@ -75,7 +75,18 @@ export default function ProfilePage() {
           {userInfo.cats.map(cat => (
             <Link key={cat.id} href={`/cat?id=${cat.id}`} className="block border rounded-lg p-4">
               <div className="flex gap-4">
-                <Image src={cat.image} alt={cat.name} width={80} height={80} className="rounded-lg object-cover" />
+                {cat.image ? (
+                    <Image
+                      src={cat.image}
+                      alt={cat.name}
+                      width={80}
+                      height={80}
+                      className="rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-[80px] h-[80px] rounded-lg bg-gray-100" />
+                  )}
+
                 <div>
                   <h4 className="font-bold">{cat.name}</h4>
                   <p className="text-gray-500">{formatBirthDateToKorean(cat.birthDate)}</p>
