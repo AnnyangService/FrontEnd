@@ -4,19 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/header";
 import BottomNavigation from "@/components/bottom-navigation";
-import { useAuth } from "@/hooks/use-auth";
+import { AuthAPI } from "@/api/auth/auth.api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
-  const { login } = useAuth();
 
   const handleLogin = async () => {
     try {
       console.log("Login with:", email, password);
-      await login(email, password);
+      await AuthAPI.login(email, password);
+      console.log("Login successful");
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : '로그인에 실패했습니다.');

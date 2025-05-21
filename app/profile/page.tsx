@@ -7,19 +7,16 @@ import Image from "next/image";
 import { Calendar, MessageSquare, UserCircle, Cat as CatIcon } from "lucide-react";
 import { UserInfo } from "@/lib/types/profile";
 import { useEffect, useState } from "react";
-import { fetchApi } from "@/lib/fetch-api";
-import { API_ENDPOINTS } from "@/lib/constants";
-import { Cat } from "@/lib/types/cat";
 import { formatBirthDateToKorean } from "@/lib/utils/date";
+import { AuthAPI } from "@/api/auth/auth.api";
+import { CatAPI } from "@/api/cat/cat.api";
 
 async function getUserInfo(): Promise<UserInfo> {
   // 1. 유저 정보 불러오기
-  const userRes = await fetch(API_ENDPOINTS.MY_INFO, { credentials: "include" });
-  const userJson = await userRes.json();
-  const userData = userJson.data;
-
+  const userData = await AuthAPI.me();
+  
   // 2. 고양이 리스트 불러오기
-  const catLists = await fetchApi<Cat[]>(API_ENDPOINTS.GET_CAT_LIST);
+  const catLists = await CatAPI.getCatLists();
 
   // 3. 예시로 count는 고정값, 나중에 필요하면 API 연동
   return {
@@ -27,7 +24,7 @@ async function getUserInfo(): Promise<UserInfo> {
     email: userData.email,
     recordCount: 12,
     chatCount: 8,
-    cats: catLists.data,
+    cats: catLists,
   };
 }
 

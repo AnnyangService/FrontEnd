@@ -5,8 +5,8 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import BottomNavigation from "@/components/bottom-navigation"
 import { usePathname } from "next/navigation"
-import { PUBLIC_PATHS } from "@/lib/constants"
 import AuthGuard from "@/components/auth-guard"
+import { PUBLIC_PATHS } from "@/api/api.constants"
 
 const inter = Inter({ subsets: ["latin"] })
 

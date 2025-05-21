@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { API_ENDPOINTS } from '@/lib/constants';
+import { AuthAPI } from '../api/auth/auth.api';
 
 /*지금 id어케얻는지 몰라서 일단 구조만 잡아둠, 3차발표 끝나고 나중에 id읽어오는부분만 수정하기 */
 
@@ -14,21 +14,7 @@ export function useAuthSignup() {
     setError(null);
 
     try {
-      const response = await fetch(API_ENDPOINTS.SIGNUP, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, password, name }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.success === false) {
-        throw new Error(data?.error?.message || '회원가입에 실패했습니다.');
-      }
-
+      const data = await AuthAPI.signup(email, password, name);
       // 회원가입 성공 후 로그인 페이지로 이동
       router.push('/login');
     } catch (err) {

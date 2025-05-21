@@ -1,17 +1,24 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import Header from "@/components/header"
 import Link from "next/link"
 import { Bell, HelpCircle, LogOut, FileText, User, Trash2 } from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
-import AuthGuard from "@/components/auth-guard"
+import { clearAccessToken } from "@/lib/token-memory"
+import { AuthAPI } from "@/api/auth/auth.api"
 
 export default function SettingsPage() {
-  const { logout } = useAuth();
+  const router = useRouter();
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
-    await logout();
+    try {
+      await AuthAPI.logout();
+      clearAccessToken();
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
