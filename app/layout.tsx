@@ -6,13 +6,19 @@ import "./globals.css"
 import BottomNavigation from "@/components/bottom-navigation"
 import { usePathname } from "next/navigation"
 import AuthGuard from "@/components/auth-guard"
-import { PUBLIC_PATHS } from "@/api/api.constants"
+import LoginPage from "./login/page"
+import SignupPage from "./sign_up/page"
 
 const inter = Inter({ subsets: ["latin"] })
 
+function getPage(pathname: string, children: ReactNode) {
+  if(pathname === "/login") return <LoginPage />
+  if(pathname === "/sign_up") return <SignupPage />
+  return <AuthGuard>{children}</AuthGuard>
+}
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const isPublicPath = PUBLIC_PATHS.includes(pathname)
 
   return (
     <html lang="ko">
@@ -22,11 +28,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className={inter.className}>
         <div className="max-w-md mx-auto bg-white min-h-screen flex flex-col">
-          {isPublicPath ? (
-            children
-          ) : (
-            <AuthGuard>{children}</AuthGuard>
-          )}
+          {getPage(pathname, children)}
           <BottomNavigation />
         </div>
       </body>
