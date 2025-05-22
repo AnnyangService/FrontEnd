@@ -6,6 +6,7 @@ import { useState } from "react"
 import Header from "@/components/header"
 
 export default function EyeDiagnosisFormPage() {
+  /*나중에 API로 보내기*/ 
   const [formData, setFormData] = useState({
     question1: "",
     question2: "",

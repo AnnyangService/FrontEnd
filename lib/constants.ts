@@ -2,14 +2,13 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 export const API_ENDPOINTS = {
-  LOGIN: `${API_BASE_URL}/auth/login`,
-  LOGOUT: `${API_BASE_URL}/auth/logout`,
-  SIGNUP: `${API_BASE_URL}/auth/signup`,
-  MY_INFO: `${API_BASE_URL}/auth/me`,
-  GET_CAT_LIST: `${API_BASE_URL}/cats`,
-  REGISTER_CAT: `${API_BASE_URL}/cats`,
-  UPDATE_MEMBER: (id: string) => `${API_BASE_URL}/members/${id}`,
-  GET_CAT: (id: string) => `${API_BASE_URL}/cats/${id}`,
+  DIS_MODEL: `${API_BASE_URL}/auth/dismode`, //<<<질병진단모델 API 이거 나중에 변경 필요
+  DIS_CATEGORY: (id:string) => `${API_BASE_URL}/auth/disease_category/${id}`, //<<<질병대분류 API 이거 나중에 변경 필요
+  DIS_ATTRIBUTES: (id:string) => `${API_BASE_URL}/auth/disease_attributes/${id}`, //<<<세부질병 가져오는 API 이거 나중에 변경 필요
+  DIS_DETAILED:`${API_BASE_URL}/auth/disease_specific`, //<<<세부질병질문에 대한 답변 API 이거 나중에 변경 필요
+  CHAT_SESSION: `${API_BASE_URL}/v1/chatbot`, //<<챗봇세션생성, 수정필요
+  CHAT_HISTORY: (id: string) => `${API_BASE_URL}/v1/chatbot/${id}`, //<<챗봇기록가져오기, 수정필요
+  CHAT_MESSAGE: `${API_BASE_URL}/v1/chatbot/message`, //챗봇 메시지 주고받기, 수정필요
 } as const;
 
-export const PUBLIC_PATHS = ['/login', '/sign_up'];
+
