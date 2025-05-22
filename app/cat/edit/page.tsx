@@ -5,14 +5,13 @@ import { useSearchParams, notFound } from "next/navigation";
 import Image from "next/image";
 import Header from "@/components/header";
 import { useCatInfo } from "@/hooks/use-catInfo";
-import { API_ENDPOINTS } from "@/lib/constants";
-import { fetchApi } from "@/lib/fetch-api";
-import { Cat } from "@/lib/types/cat";
+import { CatAPI } from "../../../api/cat/cat.api";
+import { CatApiData } from "../../../api/cat/cat.types";
 
-async function getCat(id: string): Promise<Cat> {
+async function getCat(id: string): Promise<CatApiData["cat"]> {
   try {
-    const response = await fetchApi<Cat>(API_ENDPOINTS.GET_CAT(id));
-    return response.data;
+    const response = await CatAPI.getCat(id);
+    return response;
   } catch (error) {
     console.error("🐱 고양이 정보 조회 실패:", error);
     notFound(); // 404 페이지 이동

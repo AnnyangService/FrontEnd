@@ -6,29 +6,25 @@ import Header from "@/components/header"
 import Image from "next/image"
 import Link from "next/link"
 import { Edit2, Cat as CatIcon } from "lucide-react"
-import { Cat } from "@/lib/types/cat"
-import { API_ENDPOINTS } from "@/lib/constants"
-import { fetchApi } from "@/lib/fetch-api"
-
-async function getCat(id: string): Promise<Cat> {
-  try {
-    const response = await fetchApi<Cat>(API_ENDPOINTS.GET_CAT(id));
-    return response.data;
-  } catch (error) {
-    notFound();
-  }
-}
+import { CatAPI } from "@/api/cat/cat.api"
+import { CatApiData } from "../../api/cat/cat.types"
 
 function CatProfileContent() {
   const searchParams = useSearchParams()
   const id = searchParams.get('id')
-  const [catInfo, setCatInfo] = useState<Cat | null>(null);
+  const [catInfo, setCatInfo] = useState<CatApiData['cat'] | null>(null);
 
   useEffect(() => {
     if (!id) return;
     async function loadCat() {
-      const data = await getCat(id as string);
-      setCatInfo(data);
+      try {
+        const cat = await CatAPI.getCat(id as string);
+        setCatInfo(cat);
+      }
+      catch (error) {
+        console.error("Error fetching cat data:", error);
+        notFound();
+      }
     }
     loadCat();
   }, [id]);
