@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { API_ENDPOINTS } from '@/lib/constants'; //
+import { API_ENDPOINTS } from '@/lib/constants';
 
 /*
 ****질병 진단 API 호출을 위한 훅****
@@ -44,7 +44,7 @@ export interface DiagnosisStep3AttributesResponse {
 
 //step4
 //질문 하나 대한 답변
-interface SubmittedAttribute {
+export interface SubmittedAttribute { // ✅ export 키워드 추가
   id: number;
   description: string; 
 }
@@ -80,7 +80,7 @@ export function useDiagnosis() {
   const [detailedDiagnosisResult, setDetailedDiagnosisResult] = useState<DetailedDiagnosisResponse | null>(null);
 
   // 1-1. 질병 여부 판단 요청 API 호출(POST)
-  const checkDiseaseStatus = useCallback(async (imageUrl: string) => {
+  const checkDiseaseStatus = useCallback(async (imageUrl: string): Promise<DiagnosisResponse | null> => { // ✅ 반환 타입 명시
     setLoadingStep1(true);
     setErrorStep1(null);
     setStep1Result(null); 
@@ -112,12 +112,6 @@ export function useDiagnosis() {
       setStep1Result(data as DiagnosisResponse);
       return data as DiagnosisResponse;
 
-     /* 이런형식으로 리턴됨{
-          "id": "01JTTKJYG28CFYMBKXC0Q80F61", // ulid
-          "is_normal": false,
-          "confidence": 0.90
-        }*/
-
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '질병 여부 판단 중 에러가 발생했습니다.';
       setErrorStep1(errorMessage);
@@ -135,8 +129,9 @@ export function useDiagnosis() {
     setErrorStep2(null);
     setStep2Result(null);
 
-    if (!diagnosisId) {
-      setErrorStep2("진단 ID 불러오지 못함");
+    // diagnosisId 타입 가드 (이미 string으로 받고 있지만, 방어적으로)
+    if (typeof diagnosisId !== 'string' || !diagnosisId) {
+      setErrorStep2("진단 ID가 유효하지 않습니다.");
       setLoadingStep2(false);
       return null;
     }
@@ -175,8 +170,8 @@ export function useDiagnosis() {
     setErrorAttributes(null);
     setAttributesResult(null);
 
-    if (!diagnosisId) { 
-      setErrorAttributes("진단 ID가 필요합니다.");
+    if (typeof diagnosisId !== 'string' || !diagnosisId) { 
+      setErrorAttributes("진단 ID가 유효하지 않습니다.");
       setLoadingAttributes(false);
       return null;
     }
@@ -219,12 +214,13 @@ export function useDiagnosis() {
 
   // 1-4. 세부 질병 진단 결과 조회 (POST)
   const submitDetailedDiagnosis = useCallback(async (
-    requestData: DetailedDiagnosisRequestBody
+    requestData: DetailedDiagnosisRequestBody 
   ): Promise<DetailedDiagnosisResponse | null> => {
     setLoadingDetailedDiagnosis(true);
     setErrorDetailedDiagnosis(null);
     setDetailedDiagnosisResult(null);
 
+    // DetailedDiagnosisRequestBody 에서 diagnosis_id는 string으로 정의되어 있음
     if (!requestData.diagnosis_id || !requestData.attributes || requestData.attributes.length === 0) {
       setErrorDetailedDiagnosis("진단 ID와 선택된 속성 값들이 필요합니다.");
       setLoadingDetailedDiagnosis(false);
@@ -234,7 +230,7 @@ export function useDiagnosis() {
     try {
   
       if (!API_ENDPOINTS.DIS_DETAILED) { 
-          console.error("API_ENDPOINTS.DIS_SUBMIT_STEP3 (또는 SUBMIT_DETAILED_DIAGNOSIS)가 정의되지 않았습니다. lib/constants.ts 파일을 확인해주세요.");
+          console.error("API_ENDPOINTS.DIS_DETAILED 가 정의되지 않았습니다. lib/constants.ts 파일을 확인해주세요.");
           setErrorDetailedDiagnosis("API 엔드포인트 설정 오류입니다.");
           setLoadingDetailedDiagnosis(false);
           return null;
@@ -261,7 +257,7 @@ export function useDiagnosis() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '세부 질병 진단 요청 중 에러가 발생했습니다.';
       setErrorDetailedDiagnosis(errorMessage);
-      console.error("Error submitting detailed diagnosis (Step 3 submit):", err);
+      console.error("Error submitting detailed diagnosis (Step 4):", err);
       return null;
     } finally {
       setLoadingDetailedDiagnosis(false);
