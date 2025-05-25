@@ -1,8 +1,6 @@
 import api from "@/api/api";
 import { ApiResponse } from "@/api/api.types";
-import { setAccessToken } from "@/lib/token-memory";
 import { CatApiData, CatInputData } from "./cat.types";
-import { register } from "module";
 
 export const CatAPI = {
     getCatLists: async (): Promise<CatApiData['cats']> => {
@@ -43,5 +41,5 @@ export const CatAPI = {
         if (!response.data.success) {
             throw new Error(response.data.error.message);
         }
-    },
+    }
 };

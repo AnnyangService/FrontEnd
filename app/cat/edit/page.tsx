@@ -30,9 +30,13 @@ export default function EditCatPage() {
   const [weight, setWeight] = useState<number>(0);
   const [specialNotes, setSpecialNotes] = useState("");
   const [image, setImage] = useState("");
+  
+  // 이미지 관련 상태 추가
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const galleryInputRef = useRef<HTMLInputElement>(null);
-  const { updateCat, deleteCat, loading } = useCatInfo(); // ✅ deleteCat 추가
+  const { updateCat, deleteCat, uploadImage, loading, imageUploading } = useCatInfo();
 
   useEffect(() => {
     if (!catId) return;
@@ -58,9 +62,15 @@ export default function EditCatPage() {
     }
 
     try {
+      // 새 이미지가 있다면 업로드
+      let imageUrl = image;
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+
       await updateCat(catId!, {
         name,
-        image: image || "",
+        image: imageUrl || "",
         birthDate,
         breed: breed === "custom" ? customBreed : breed,
         gender: gender === "암컷" ? "FEMALE" : "MALE",
@@ -91,9 +101,9 @@ export default function EditCatPage() {
       <div className="p-4">
         <div className="flex flex-col items-center mb-8">
           <div className="w-40 h-40 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            {image ? (
+            {previewUrl || image ? (
               <Image
-                src={image}
+                src={previewUrl || image}
                 alt="고양이 이미지"
                 width={160}
                 height={160}
@@ -108,8 +118,9 @@ export default function EditCatPage() {
           <button
             className="text-blue-500"
             onClick={() => galleryInputRef.current?.click()}
+            disabled={imageUploading}
           >
-            사진 변경하기
+            {imageUploading ? "업로드 중..." : "사진 변경하기"}
           </button>
           <input
             type="file"
@@ -119,8 +130,9 @@ export default function EditCatPage() {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
+                setImageFile(file);
                 const url = URL.createObjectURL(file);
-                setImage(url);
+                setPreviewUrl(url);
               }
             }}
           />
@@ -211,10 +223,10 @@ export default function EditCatPage() {
 
           <button
             onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-green-600 text-white p-4 rounded-lg"
+            disabled={loading || imageUploading}
+            className={`w-full ${loading || imageUploading ? 'bg-gray-400' : 'bg-green-600'} text-white p-4 rounded-lg`}
           >
-            {loading ? "수정 중..." : "수정 완료"}
+            {loading ? "수정 중..." : imageUploading ? "이미지 업로드 중..." : "수정 완료"}
           </button>
 
           <button
