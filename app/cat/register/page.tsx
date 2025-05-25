@@ -14,20 +14,22 @@ export default function RegisterCatPage() {
   const [name, setName] = useState("");
   const [weight, setWeight] = useState<number>(0);
   const [specialNotes, setSpecialNotes] = useState("");
-  const { registerCat, loading } = useCatInfo();
+  const { registerCat, uploadImage, loading, imageUploading } = useCatInfo();
 
-
-
-  // 이미지 미리보기 URL 상태
+  // 이미지 관련 상태
   const [previewUrl, setPreviewUrl] = useState<string>("")
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  // Removed unused state variable 'uploadedImageUrl'
 
   const galleryInputRef = useRef<HTMLInputElement>(null)
-
-  
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // 파일 객체 저장
+      setImageFile(file)
+      
+      // 미리보기용 로컬 URL 생성
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
     }
@@ -38,26 +40,33 @@ export default function RegisterCatPage() {
   }
 
   const handleSubmit = async () => {
-  if (!name || !selectedDate || !gender || !breed) {
-    alert("모든 항목을 입력해주세요.");
-    return;
-  }
+    if (!name || !selectedDate || !gender || !breed) {
+      alert("모든 항목을 입력해주세요.");
+      return;
+    }
 
-  try {
-    await registerCat({
-      name,
-      image: previewUrl || "", 
-      birthDate: selectedDate,
-      breed: breed === "custom" ? customBreed : breed,
-      gender: gender === "암컷" ? "FEMALE" : "MALE",
-      weight,
-      lastDiagnosis: selectedDate,
-      specialNotes,
-    });
-  } catch (e) {
-    alert("등록에 실패했습니다.");
-  }
-};
+    try {
+      // 이미지가 있는 경우 먼저 업로드
+      let imageUrl = "";
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+        // Removed setting 'uploadedImageUrl' as it is no longer used
+      }
+
+      await registerCat({
+        name,
+        image: imageUrl, 
+        birthDate: selectedDate,
+        breed: breed === "custom" ? customBreed : breed,
+        gender: gender === "암컷" ? "FEMALE" : "MALE",
+        weight,
+        lastDiagnosis: selectedDate,
+        specialNotes,
+      });
+    } catch (e) {
+      alert("등록에 실패했습니다.");
+    }
+  };
 
 
   return (
@@ -66,7 +75,6 @@ export default function RegisterCatPage() {
 
       <div className="p-4">
         <div className="flex flex-col items-center mb-8">
-          {/* 이미지 영역을 더 크게 조정 */}
           <div className="w-40 h-40 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Image
               src={previewUrl || "/placeholder.svg?height=160&width=160"}
@@ -79,8 +87,9 @@ export default function RegisterCatPage() {
           <button
             className="text-blue-500"
             onClick={() => galleryInputRef.current?.click()}
+            disabled={imageUploading}
           >
-            사진 등록하기
+            {imageUploading ? "업로드 중..." : "사진 등록하기"}
           </button>
           <input
             type="file"
@@ -166,7 +175,13 @@ export default function RegisterCatPage() {
             <textarea value={specialNotes} onChange={(e) => setSpecialNotes(e.target.value)} placeholder="특이사항을 입력하세요" className="w-full p-3 border rounded-lg h-24"></textarea>
           </div>
 
-          <button onClick={handleSubmit} disabled={loading} className="w-full bg-blue-500 text-white p-4 rounded-lg mt-4">{loading ? "등록 중..." : "등록하기"}</button>
+          <button 
+            onClick={handleSubmit} 
+            disabled={loading || imageUploading} 
+            className={`w-full ${loading || imageUploading ? 'bg-gray-400' : 'bg-blue-500'} text-white p-4 rounded-lg mt-4`}
+          >
+            {loading ? "등록 중..." : imageUploading ? "이미지 업로드 중..." : "등록하기"}
+          </button>
         </div>
       </div>
     </div>
