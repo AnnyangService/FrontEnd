@@ -7,7 +7,8 @@
 import { Suspense, useState, useEffect, useCallback } from "react"
 import Header from "@/components/header"
 import { useSearchParams, useRouter } from "next/navigation"
-import { useDiagnosis, DiagnosisAttribute, SubmittedAttribute, DetailedDiagnosisResponse } from "@/hooks/use-diagnosis"
+import { useDiagnosis } from "@/hooks/use-diagnosis"
+import { DiagnosisAttribute, SubmittedAttribute, DetailedDiagnosisResponse } from "@/api/diagnosis/diagnosis.types"
 import { Loader2 } from "lucide-react"
 import Image from "next/image" 
 

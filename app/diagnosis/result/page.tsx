@@ -12,7 +12,8 @@ import { Suspense, useEffect, useState, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import Header from "@/components/header"
 import Image from "next/image"
-import { useDiagnosis, DiagnosisResponse, DiagnosisStep2Response } from "@/hooks/use-diagnosis"
+import { useDiagnosis } from "@/hooks/use-diagnosis"
+import type { DiagnosisResponse, DiagnosisStep2Response } from "@/api/diagnosis/diagnosis.types"
 import { Loader2 } from "lucide-react"
 
 // 이 페이지에서 표시할 전체 진단 결과의 상태 타입
