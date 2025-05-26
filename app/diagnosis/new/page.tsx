@@ -8,38 +8,45 @@
 import { useRef, useState } from "react"
 import Header from "@/components/header"
 import Image from "next/image"
-import { Camera, ImageIcon } from "lucide-react"
+import { Camera, ImageIcon, Loader2 } from "lucide-react"
 import { useDiagnosis } from "@/hooks/use-diagnosis" 
+import { useS3Upload } from "@/hooks/use-s3-upload"
 import { useRouter } from "next/navigation" 
 
 export default function NewDiagnosisPage() {
   const [preview, setPreview] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false) 
-  const [error, setError] = useState<string | null>(null) 
+  const [error, setError] = useState<string | null>(null)
+  const [uploadingStatus, setUploadingStatus] = useState<string | null>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
 
   const { checkDiseaseStatus } = useDiagnosis() 
+  const { uploadFile, uploading } = useS3Upload({ category: 'diagnosis' })
   const router = useRouter() 
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const imageUrl = URL.createObjectURL(file)
-      setPreview(imageUrl)
+      // 로컬 미리보기 URL 생성 (UI 표시용)
+      const localPreviewUrl = URL.createObjectURL(file)
+      setPreview(localPreviewUrl)
       setError(null) 
-      setIsLoading(true) 
-
-      //일단 이미지 URL API전달하는식으로 구현.
-      try {
+      setIsLoading(true)
       
-
-        const diagnosisResponse = await checkDiseaseStatus(imageUrl) 
+      try {
+        // 1. 먼저 S3에 이미지 업로드
+        setUploadingStatus("이미지 업로드 중...")
+        const { objectUrl } = await uploadFile(file)
+        setUploadingStatus("이미지 분석 중...")
+        
+        // 2. S3 URL을 사용하여 진단 API 호출
+        const diagnosisResponse = await checkDiseaseStatus(objectUrl) 
 
         if (diagnosisResponse) {
-          // 결과 페이지로 데이터와 함께 이동
+          // 결과 페이지로 데이터와 함께 이동 (S3 URL 사용)
           router.push(
-            `/diagnosis/result?id=${diagnosisResponse.id}&isNormal=${diagnosisResponse.is_normal}&imageUrl=${encodeURIComponent(imageUrl)}&confidence=${diagnosisResponse.confidence}`
+            `/diagnosis/result?id=${diagnosisResponse.id}&isNormal=${diagnosisResponse.is_normal}&imageUrl=${encodeURIComponent(objectUrl)}&confidence=${diagnosisResponse.confidence}`
           )
         } else {
           setError("진단 결과를 받아오지 못했습니다.")
@@ -49,6 +56,7 @@ export default function NewDiagnosisPage() {
         setError(err instanceof Error ? err.message : "진단 중 에러가 발생했습니다.")
       } finally {
         setIsLoading(false) 
+        setUploadingStatus(null)
       }
     }
   }
@@ -72,8 +80,17 @@ export default function NewDiagnosisPage() {
         )}
 
         {/* 로딩 및 에러 메시지 표시 */}
-        {isLoading && <p className="text-center text-blue-500">진단 중입니다...</p>}
-        {error && <p className="text-center text-red-500">오류: {error}</p>}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center my-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-2" />
+            <p className="text-center text-blue-500">{uploadingStatus || '진단 중입니다...'}</p>
+          </div>
+        )}
+        {error && (
+          <div className="p-3 bg-red-50 text-red-500 rounded-md my-4">
+            <p className="text-center">오류: {error}</p>
+          </div>
+        )}
 
         <div className="mb-6">
           <h2 className="text-lg font-medium mb-2">사진 촬영 방법</h2>
