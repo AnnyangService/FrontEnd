@@ -9,6 +9,8 @@ import {
 } from './diagnosis.types';
 import { ApiResponse } from '../api.types';
 
+const getStorageKey = (diagnosisId: string) => `step2_polling_${diagnosisId}`;
+
 export const DiagnosisAPI = {
   /**
    * Step 1: 고양이 눈 질병 여부 판단 요청
@@ -17,6 +19,8 @@ export const DiagnosisAPI = {
    */
   checkDiseaseStatus: async (imageUrl: string): Promise<DiagnosisResponse> => {
     console.log("🐾 질병 여부 판단 요청: 이미지 URL =", imageUrl);
+    const storageKey = getStorageKey(imageUrl);
+    localStorage.setItem(storageKey, JSON.stringify({ pollingCount: 0 })); // 폴링 횟수 초기화
     const requestBody: DiagnosisRequestBody = { imageUrl: imageUrl };
     const response = await api.post<ApiResponse<DiagnosisResponse>>('/diagnosis/step1', requestBody);
     console.log("🐾 등록 응답 상태:", response.status);
@@ -32,11 +36,28 @@ export const DiagnosisAPI = {
    * @param diagnosisId Step 1에서 반환된 진단 ID
    * @returns DiagnosisStep2Response 질병 대분류 판단 결과
    */
-  getDiseaseCategory: async (diagnosisId: string): Promise<DiagnosisStep2Response> => {
+  getDiseaseCategory: async (diagnosisId: string): Promise<DiagnosisStep2Response | null> => {
     // 실제 API 호출 대신 모의 데이터 반환
     console.log(`🐾 질병 대분류 조회 요청: ID=${diagnosisId}`);
     
-    // 모킹 데이터
+    // 폴링 테스트를 위한 모킹 구현
+    // 로컬 스토리지에 폴링 시도 횟수 저장 (테스트용)
+    const storageKey = getStorageKey(diagnosisId);
+    const storedPollingCount = localStorage.getItem(storageKey);
+    const pollingCount = storedPollingCount
+      ? parseInt(storedPollingCount || '0')
+      : 0;
+    
+    // 폴링 횟수 증가
+    localStorage.setItem(storageKey, (pollingCount + 1).toString());
+
+    // 테스트를 위해 처음 3번은 결과가 아직 준비되지 않은 것처럼 처리
+    if (pollingCount < 3) {
+      console.log(`🕒 질병 대분류 아직 처리중... (시도 #${pollingCount + 1})`);
+      return null; // 결과가 아직 준비되지 않음
+    }
+    
+    // 모킹 데이터 (폴링 성공)
     const mockResponse: DiagnosisStep2Response = {
       id: diagnosisId,
       category: "결막염 의심", // 예시 카테고리
@@ -45,11 +66,23 @@ export const DiagnosisAPI = {
     
     // 실제 구현 시 아래 주석 해제 및 모킹 코드 제거
     /*
-    const response = await api.get<ApiResponse<DiagnosisStep2Response>>(`/diagnosis/step2/${diagnosisId}`);
-    if (!response.data.success) {
-      throw new Error(response.data.error.message);
+    try {
+      const response = await api.get<ApiResponse<DiagnosisStep2Response>>(`/diagnosis/step2/${diagnosisId}`);
+      
+      // 분석이 아직 진행중인 경우 - 서버 응답 형태에 맞게 수정 필요
+      if (response.data.status === 'processing' || !response.data.data) {
+        return null;
+      }
+      
+      if (!response.data.success) {
+        throw new Error(response.data.error.message);
+      }
+      
+      return response.data.data;
+    } catch (error) {
+      console.error("질병 대분류 조회 중 오류:", error);
+      throw error;
     }
-    return response.data.data;
     */
     
     return mockResponse;
