@@ -39,6 +39,8 @@ export function useS3Upload(props?: UseS3UploadProps) {
         file,
         presignedData.contentType // 서버에서 결정된 contentType 사용
       );
+
+      console.log("S3 업로드 완료:", objectUrl);
       
       return {
         objectUrl,
