@@ -46,7 +46,7 @@ function DiagnosisResultContent() {
     let analysisText = step1Analysis;
     let needsDetailedDiagnosis = false;
     if (step2Data) {
-      const categoryConfidencePercentage = (step2Data.confidence * 100).toFixed(1);
+      const categoryConfidencePercentage = (step2Data.confidence * 100).toFixed(2);
       analysisText += `\n\n의심되는 질병 카테고리: ${step2Data.category} (신뢰도: ${categoryConfidencePercentage}%)`;
       // Step 2 결과 카테고리가 세부 진단 필요 목록에 있는지 확인
       if (STEP_3_DISEASE_CATEGORIES.includes(step2Data.category)) {
@@ -207,7 +207,7 @@ function DiagnosisResultContent() {
           baseAnalysisText = "질병이 의심됩니다. AI가 추가 분석을 진행합니다.";
         }
         if (confidence !== undefined) {
-          const confidencePercentage = (confidence * 100).toFixed(1);
+          const confidencePercentage = (confidence * 100).toFixed(2);
           baseAnalysisText += `\n(초기 판단 신뢰도: ${confidencePercentage}%)`;
         }
 
