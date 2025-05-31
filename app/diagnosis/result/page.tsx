@@ -41,10 +41,12 @@ function DiagnosisResultContent() {
   const [combinedResult, setCombinedResult] = useState<CombinedDiagnosisResult | null>(null)
   const [isLoadingPage, setIsLoadingPage] = useState(true)
   const [showDetailedDiagnosisButton, setShowDetailedDiagnosisButton] = useState(false);
+  const [showChatWithAIButton, setShowChatWithAIButton] = useState(false);
 
   const processStep2Result = useCallback((step1Analysis: string, step2Data: DiagnosisStep2Response | null, step2Error?: string | null) => {
     let analysisText = step1Analysis;
     let needsDetailedDiagnosis = false;
+    let showChatButton = false;
     if (step2Data) {
       const categoryConfidencePercentage = (step2Data.confidence * 100).toFixed(2);
       analysisText += `\n\n의심되는 질병 카테고리: ${step2Data.category} (신뢰도: ${categoryConfidencePercentage}%)`;
@@ -57,7 +59,7 @@ function DiagnosisResultContent() {
     } else {
       analysisText += `\n\n질병 카테고리를 특정할 수 없습니다.`;
     }
-    return { analysisText, needsDetailedDiagnosis };
+    return { analysisText, needsDetailedDiagnosis, showChatButton };
   }, []);
 
   const MAX_POLLING_ATTEMPTS = 20; // 최대 폴링 시도 횟수 (약 1분)
@@ -98,14 +100,18 @@ function DiagnosisResultContent() {
           // 폴링 중단 처리
           stopPolling();
           
-          // 결과 업데이트
+          // step2이면 ai채팅으로 넘어가게, step3필요하면 detailed 페이지로 넘어가도록 수정
           setCombinedResult(prevResult => {
             if (!prevResult) return null;
-            const { analysisText: updatedAnalysisText, needsDetailedDiagnosis } = 
+            const { analysisText: updatedAnalysisText, needsDetailedDiagnosis, showChatButton: shouldShowChatButton } = 
               processStep2Result(baseAnalysisText, step2Data, errorStep2 || undefined);
             
             if (needsDetailedDiagnosis) {
               setShowDetailedDiagnosisButton(true);
+              setShowChatWithAIButton(false);
+            }else if (shouldShowChatButton && !prevResult.step1Result?.is_normal) {
+                setShowChatWithAIButton(true);
+                setShowDetailedDiagnosisButton(false); 
             }
             
             return {
@@ -188,7 +194,7 @@ function DiagnosisResultContent() {
     async function loadDiagnosisData(currentId: string) {
       setIsLoadingPage(true);
       setShowDetailedDiagnosisButton(false); // 버튼 상태 초기화
-      
+      setShowChatWithAIButton(false);
       try {
         const isNormal = isNormalParam === 'true';
         const confidence = confidenceParam ? parseFloat(confidenceParam) : undefined;
@@ -333,6 +339,23 @@ function DiagnosisResultContent() {
               className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors text-base font-medium shadow-md"
             >
               세부 질병 진단으로 이동
+            </button>
+          </div>
+        )}
+
+        {!isNormal && showChatWithAIButton && !loadingStep2 && step1Result.id && step2Result && step2Result.category && (
+          <div className="mt-6 text-center p-4 border border-green-300 bg-green-50 rounded-lg">
+            <p className="text-sm text-green-700 mb-3">
+              AI와 상담하여 질병에 대해 더 알아보세요.
+            </p>
+            <button
+              onClick={() => {
+                const initialChatMessage = `AI 진단 결과, ${step2Result.category}(으)로 의심됩니다. 이 질병에 대해 더 자세히 알고 싶어요.`;
+                router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`);
+              }}
+              className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md"
+            >
+              AI와 채팅 시작
             </button>
           </div>
         )}

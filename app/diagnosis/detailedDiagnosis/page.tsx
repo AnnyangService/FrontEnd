@@ -155,6 +155,8 @@ function EyeDiagnosisFormContent() {
   }
   
   if (uiState === "SHOWING_FINAL_RESULT" && finalResult) {
+    //이 값이 새로운 채팅 새 메시지로 사용됨
+    const initialChatMessage = `진단된 질병: ${finalResult.category}`;
     const confidencePercentage = (finalResult.confidence * 100).toFixed(1);
     return (
         <div className="pb-16">
@@ -175,12 +177,18 @@ function EyeDiagnosisFormContent() {
                         이는 AI의 분석 결과이며, 정확한 진단과 치료는 반드시 수의사와 상담하시기 바랍니다.
                     </p>
                 </div>
-                <div className="mt-8 text-center">
+                <div className="mt-8 text-center flex flex-col sm:flex-row justify-center gap-6">
                     <button
                         onClick={() => router.push('/')} 
                         className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors text-base font-medium shadow-md"
                     >
                         홈으로 돌아가기
+                    </button>
+                    <button
+                        onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`)}
+                        className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md w-full sm:w-auto"
+                    >
+                        AI와 채팅 시작
                     </button>
                 </div>
             </div>

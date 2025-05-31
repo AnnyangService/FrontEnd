@@ -3,15 +3,13 @@
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Bell, Settings } from "lucide-react"
+import { Bell, Settings, Cat as CatIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { Cat } from "@/lib/types/cat"; 
+import { CatAPI } from "@/api/cat/cat.api"; 
+import { formatBirthDateToKorean } from "@/lib/utils/date";
 
-type RecentDiagnosis = {
-  id: number;
-  name: string;
-  date: string;
-  image: string;
-};
+
 
 type RecentChat = {
   id: number;
@@ -24,22 +22,6 @@ type RecentNotification = {
   title: string;
 };
 
-async function getRecentDiagnoses(): Promise<RecentDiagnosis[]> {
-  return [
-    {
-      id: 1,
-      name: '미오 진단결과',
-      date: '2025.02.15',
-      image: '/images/cat-mio.png',
-    },
-    {
-      id: 2,
-      name: '나비 진단결과',
-      date: '2025.02.14',
-      image: '/images/cat-nabi.png',
-    },
-  ];
-}
 
 async function getRecentChat(): Promise<RecentChat[]> {
   return [
@@ -63,7 +45,7 @@ async function getRecentNotification(): Promise<RecentNotification[]> {
 export default function HomePage() {
   const router = useRouter()
   const [showNotifications, setShowNotifications] = useState(false)
-  const [recentDiagnoses, setRecentDiagnoses] = useState<RecentDiagnosis[]>([])
+  const [registeredCats, setRegisteredCats] = useState<Cat[]>([])
   const [recentChat, setRecentChat] = useState<RecentChat[]>([])
   const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -79,29 +61,30 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const loadData = async () => {
-    try {
-      setIsLoading(true)
-      const [diagnoses, chat, notifications] = await Promise.all([
-        getRecentDiagnoses(),
-        getRecentChat(),
-        getRecentNotification()
-      ])
-      setRecentDiagnoses(diagnoses)
-      setRecentChat(chat)
-      setRecentNotifications(notifications)
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setIsLoading(false)
+      const loadData = async () => {
+      try {
+        setIsLoading(true)
+        const [cats, chat, notifications] = await Promise.all([ 
+          CatAPI.getCatLists(),
+          getRecentChat(),
+          getRecentNotification()
+        ])
+        setRegisteredCats(cats) 
+        setRecentChat(chat)
+        setRecentNotifications(notifications)
+      } catch (error) {
+        console.error('Error loading data:', error)
+        
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }
 
   useEffect(() => {
     loadData()
   }, [])
 
-  // 페이지 포커스 시 데이터 새로고침
+  
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -119,7 +102,7 @@ export default function HomePage() {
     return <div className="p-4">로딩 중...</div>
   }
 
-  if (!recentDiagnoses.length && !recentChat.length) {
+   if (!registeredCats.length && !recentChat.length && !recentNotifications.length) { 
     return <div className="p-4">데이터가 없습니다.</div>
   }
 
@@ -177,24 +160,41 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <h2 className="text-xl font-bold mb-4">최근 진단 기록</h2>
-        <div className="space-y-4">
-          {recentDiagnoses.map((diagnosis) => (
-            <Link 
-              key={diagnosis.id}
-              href={`/diagnosis/result?id=${diagnosis.id}`} 
-              className="block border rounded-lg p-4"
-            >
-              <div className="flex gap-4">
-                <Image src={diagnosis.image} alt={diagnosis.name} width={80} height={80} className="rounded-lg object-cover" />
-                <div>
-                  <h3 className="font-medium">{diagnosis.name}</h3>
-                  <p className="text-gray-500">{diagnosis.date}</p>
+        <h2 className="text-xl font-bold mb-4">등록된 고양이</h2> 
+      <div className="space-y-4">
+        {registeredCats.map((cat) => ( 
+          <Link 
+            key={cat.id} 
+            href={`/cat?id=${cat.id}`}  
+            className="block border rounded-lg p-4"
+          >
+            <div className="flex gap-4">
+              {cat.image ? (
+                <Image
+                  src={cat.image}
+                  alt={cat.name}
+                  width={80}
+                  height={80}
+                  className="rounded-lg object-cover"
+                />
+              ) : (
+                <div className="w-[80px] h-[80px] rounded-lg bg-gray-100 flex items-center justify-center">
+                    <CatIcon className="w-10 h-10 text-gray-400" /> {/* CatIcon 사용 */}
                 </div>
+              )}
+              <div>
+                <h3 className="font-medium">{cat.name}</h3> 
+                <p className="text-gray-500 text-sm">
+                  {cat.birthDate ? `${formatBirthDateToKorean(cat.birthDate)}` : '생일 정보 없음'}
+                </p>
+                <p className="text-gray-500 text-sm">
+                  최근 진단일: {cat.lastDiagnosis || '기록 없음'}
+                </p>
               </div>
-            </Link>
-          ))}
-        </div>
+            </div>
+          </Link>
+        ))}
+      </div>
 
         <h2 className="text-xl font-bold mt-8 mb-4">AI 상담 기록</h2>
         {recentChat.map((chat) => (
