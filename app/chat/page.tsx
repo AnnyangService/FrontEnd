@@ -401,7 +401,7 @@ function ChatBubble({
 }) {
   const showActions = from === "bot" && !typing && text;
   return (
-    <div className={`flex w-full ${from === "bot" ? "justify-start" : "justify-end"}`}>
+    <div className={`flex w-full ${from === "bot" ? "justify-start" : "justify-end"} animate-pop-in`}>
         <div className={`flex gap-2 items-end ${from === "bot" ? "flex-row" : "flex-row-reverse"}`}>
             {from === "bot" && (
                 <Image src="/images/robot-icon.png" alt="AI" width={32} height={32} className="rounded-full self-start shrink-0" />
