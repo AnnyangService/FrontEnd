@@ -40,6 +40,7 @@ export const DiagnosisAPI = {
     // 실제 API 호출 대신 모의 데이터 반환
     console.log(`🐾 질병 대분류 조회 요청: ID=${diagnosisId}`);
     
+    /*
     // 폴링 테스트를 위한 모킹 구현
     // 로컬 스토리지에 폴링 시도 횟수 저장 (테스트용)
     const storageKey = getStorageKey(diagnosisId);
@@ -65,12 +66,12 @@ export const DiagnosisAPI = {
     };
     
     // 실제 구현 시 아래 주석 해제 및 모킹 코드 제거
-    /*
+    */
     try {
       const response = await api.get<ApiResponse<DiagnosisStep2Response>>(`/diagnosis/step2/${diagnosisId}`);
       
       // 분석이 아직 진행중인 경우 - 서버 응답 형태에 맞게 수정 필요
-      if (response.data.status === 'processing' || !response.data.data) {
+      if (!response.data.data || response.data.status === 'processing') {
         return null;
       }
       
@@ -83,9 +84,9 @@ export const DiagnosisAPI = {
       console.error("질병 대분류 조회 중 오류:", error);
       throw error;
     }
-    */
     
-    return mockResponse;
+    
+    //return mockResponse;
   },
 
   /**

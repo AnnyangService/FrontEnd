@@ -61,6 +61,7 @@ export function useDiagnosis() {
   }, []);
 
   // 1-2. 질병 대분류 판단 요청 API 호출(GET)
+  // 이거 질병 있으면 그냥 알아서 step2실행해주니까 사용X(ID로 가져오기만)
   const getDiseaseCategory = useCallback(async (diagnosisId: string): Promise<DiagnosisStep2Response | null> => {
     setLoadingStep2(true);
     setErrorStep2(null);

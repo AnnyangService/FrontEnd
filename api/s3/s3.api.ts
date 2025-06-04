@@ -38,7 +38,7 @@ export const S3API = {
         'Content-Type': contentType,
         'x-amz-acl': 'public-read'
       }
-    });
+  });
 
     if (!response.ok) {
       throw new Error('이미지 업로드에 실패했습니다.');

@@ -1,4 +1,5 @@
 export type ApiResponse<T> = {
+  status: string;
   success: boolean;
   data: T;
   error: ErrorResponse;

@@ -25,6 +25,9 @@ export default function NewDiagnosisPage() {
   const { uploadFile, uploading } = useS3Upload({ category: 'diagnosis' })
   const router = useRouter() 
 
+  ///////////이거 테스트용이니 나중에 지우기기
+  const [testImageUrl, setTestImageUrl] = useState<string>("")
+
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -61,6 +64,37 @@ export default function NewDiagnosisPage() {
     }
   }
 
+   // --- 테스트용 URL로 진단 실행하는 함수 추가 나중에 삭제---
+  const handleDiagnoseWithUrl = async () => {
+    if (!testImageUrl.trim()) {
+      setError("테스트할 이미지 URL을 입력해주세요.");
+      return;
+    }
+    setPreview(testImageUrl); 
+    setError(null);
+    setIsLoading(true);
+    setUploadingStatus("입력된 URL로 이미지 분석 중...");
+
+    try {
+      const diagnosisResponse = await checkDiseaseStatus(testImageUrl);
+
+      if (diagnosisResponse) {
+        
+        router.push(
+          `/diagnosis/result?id=${diagnosisResponse.id}&isNormal=${diagnosisResponse.is_normal}&imageUrl=${encodeURIComponent(testImageUrl)}&confidence=${diagnosisResponse.confidence}`
+        );
+      } else {
+        setError("진단 결과를 받아오지 못했습니다.");
+      }
+    } catch (err) {
+      console.error("Error during diagnosis with URL:", err);
+      setError(err instanceof Error ? err.message : "URL 진단 중 에러가 발생했습니다.");
+    } finally {
+      setIsLoading(false);
+      setUploadingStatus(null);
+    }
+  };
+
   return (
     <main className="max-w-md mx-auto bg-white min-h-screen flex flex-col pb-16">
       <Header title="새로운 진단" backUrl="/" />
@@ -92,6 +126,27 @@ export default function NewDiagnosisPage() {
           </div>
         )}
 
+        {/* --- 테스트용 URL 입력 폼 추가 (최소한의 스타일) --- */}
+        <div className="my-4 p-3 border rounded">
+            <h3 className="text-sm font-medium mb-1">테스트용 URL 입력:</h3>
+            <input
+                type="text"
+                value={testImageUrl}
+                onChange={(e) => setTestImageUrl(e.target.value)}
+                placeholder="이미지 URL 붙여넣기"
+                className="w-full p-2 border rounded text-sm mb-2"
+                disabled={isLoading}
+            />
+            <button
+                onClick={handleDiagnoseWithUrl}
+                disabled={isLoading || !testImageUrl.trim()}
+                className="w-full p-2 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:bg-gray-100 text-sm"
+            >
+                URL로 진단 시작
+            </button>
+        </div>
+        {/* ------------------------------------------- */}
+
         <div className="mb-6">
           <h2 className="text-lg font-medium mb-2">사진 촬영 방법</h2>
           <div className="bg-gray-50 p-4 rounded-lg">
@@ -103,6 +158,7 @@ export default function NewDiagnosisPage() {
             </ul>
           </div>
         </div>
+        
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <button

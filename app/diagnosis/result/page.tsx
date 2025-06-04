@@ -3,10 +3,11 @@
 /*
 URL로 넘어온 정보들 일단 보여주고(step1)
 step2로딩, 로딩 끝나면 보여줌
-만약 step3필요한 경우 step3로 이동하는 버튼 생성
-(나중에 채팅으로 이동하는거 추가, 어떤 방식으로 step3갈지 변경)
+무조건 step3이동하도록
 
 */
+
+"use client"
 
 import { Suspense, useEffect, useState, useCallback, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -18,22 +19,20 @@ import { Loader2 } from "lucide-react"
 
 // 이 페이지에서 표시할 전체 진단 결과의 상태 타입
 interface CombinedDiagnosisResult {
-  step1Result: DiagnosisResponse | null; // Step 1 API (checkDiseaseStatus)의 결과
-  step2Result: DiagnosisStep2Response | null; // Step 2 API (getDiseaseCategory)의 결과
-  previewImageUrl: string | null; // NewDiagnosisPage에서 전달된 이미지 URL.
-  currentAnalysisText: string; // 화면에 표시될 최종 분석 텍스트
-  statusText: string; // "정상", "질병 의심" 등
+  step1Result: DiagnosisResponse | null;
+  step2Result: DiagnosisStep2Response | null;
+  previewImageUrl: string | null;
+  currentAnalysisText: string;
+  statusText: string;
 }
-
-// 세부 진단이 필요한 질병 카테고리 목록 (예시)
-const STEP_3_DISEASE_CATEGORIES = ["결막염 의심", "각막염 의심", "포도막염 의심"];
 
 function DiagnosisResultContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { getDiseaseCategory, loadingStep2, errorStep2 } = useDiagnosis()
+  // loadingStep2와 errorStep2는 useDiagnosis 훅에서 가져오지만, 실제 UI 표시는 step2Polling과 pageError 상태를 사용합니다.
+  const { getDiseaseCategory, errorStep2 } = useDiagnosis()
 
-  const idParam = searchParams.get('id') // Step 1 결과의 ID
+  const idParam = searchParams.get('id')
   const isNormalParam = searchParams.get('isNormal')
   const imageUrlParam = searchParams.get('imageUrl')
   const confidenceParam = searchParams.get('confidence')
@@ -41,77 +40,67 @@ function DiagnosisResultContent() {
   const [combinedResult, setCombinedResult] = useState<CombinedDiagnosisResult | null>(null)
   const [isLoadingPage, setIsLoadingPage] = useState(true)
   const [showDetailedDiagnosisButton, setShowDetailedDiagnosisButton] = useState(false);
-  const [showChatWithAIButton, setShowChatWithAIButton] = useState(false);
 
-  const processStep2Result = useCallback((step1Analysis: string, step2Data: DiagnosisStep2Response | null, step2Error?: string | null) => {
+
+  // processStep2Result 함수에서 showChatButton 관련 로직 제거
+  const processStep2Result = useCallback((step1Analysis: string, step2Data: DiagnosisStep2Response | null, step2ErrorText?: string | null) => {
     let analysisText = step1Analysis;
-    let needsDetailedDiagnosis = false;
-    let showChatButton = false;
+    
+
+    
+
     if (step2Data) {
       const categoryConfidencePercentage = (step2Data.confidence * 100).toFixed(2);
-      analysisText += `\n\n의심되는 질병 카테고리: ${step2Data.category} (신뢰도: ${categoryConfidencePercentage}%)`;
-      // Step 2 결과 카테고리가 세부 진단 필요 목록에 있는지 확인
-      if (STEP_3_DISEASE_CATEGORIES.includes(step2Data.category)) {
-        needsDetailedDiagnosis = true;
-      }
-    } else if (step2Error) {
-      analysisText += `\n\n질병 카테고리 분석 중 오류 발생: ${step2Error}`;
+
+      if(step2Data.category == "corneal")
+        analysisText += `\n\n각막 관련 질병이 의심됩니다. (신뢰도: ${categoryConfidencePercentage}%)`;
+      else
+      analysisText += `\n\n염증 관련 질병이 의심됩니다. (신뢰도: ${categoryConfidencePercentage}%)`;
+    } else if (step2ErrorText) {
+      analysisText += `\n\n질병 카테고리 분석 중 오류 발생: ${step2ErrorText}`;
     } else {
-      analysisText += `\n\n질병 카테고리를 특정할 수 없습니다.`;
+      analysisText += `\n\n질병 카테고리 분석 진행 중...`;
     }
-    return { analysisText, needsDetailedDiagnosis, showChatButton };
+    return { analysisText };
   }, []);
 
-  const MAX_POLLING_ATTEMPTS = 20; // 최대 폴링 시도 횟수 (약 1분)
-  const POLLING_INTERVAL = 3000; // 폴링 간격 (3초)
+  const MAX_POLLING_ATTEMPTS = 20;
+  const POLLING_INTERVAL = 3000;
   
-  // useRef를 사용하여 폴링 관련 상태를 관리 (렌더링 사이클과 무관하게 값 유지)
   const pollingStatusRef = useRef({
     isPolling: false,
     attempts: 0,
     intervalId: null as NodeJS.Timeout | null
   });
   
-  const [step2Polling, setStep2Polling] = useState(false);
+  const [step2Polling, setStep2Polling] = useState(false); // Step 2 폴링 로딩 상태
 
-  // Step2 결과를 폴링하는 함수
-  const pollStep2Data = useCallback(async (diagnosisId: string, baseAnalysisText: string) => {
-    // 이미 폴링 중이면 중복 실행 방지
+  const pollStep2Data = useCallback(async (diagnosisId: string, baseAnalysisText: string, step1IsNormal: boolean) => {
     if (pollingStatusRef.current.isPolling) return;
     
-    // 폴링 시작 상태 설정
     pollingStatusRef.current.isPolling = true;
     pollingStatusRef.current.attempts = 0;
-    setStep2Polling(true);
+    setStep2Polling(true); // 폴링 시작 시 로딩 상태 true
     
     const pollStep2Results = async () => {
-      // ref를 사용하여 시도 횟수 증가 (렌더링에 영향 없음)
       pollingStatusRef.current.attempts += 1;
-      
       console.log(`🔄 Step2 데이터 폴링 시도 #${pollingStatusRef.current.attempts}`);
       
       try {
         const step2Data = await getDiseaseCategory(diagnosisId);
         
-        // 유효한 결과가 있으면 폴링 중단
         if (step2Data && step2Data.category) {
           console.log("✅ Step2 데이터 폴링 성공:", step2Data);
+          stopPolling(); // 성공 시 폴링 중단 및 로딩 상태 false
           
-          // 폴링 중단 처리
-          stopPolling();
-          
-          // step2이면 ai채팅으로 넘어가게, step3필요하면 detailed 페이지로 넘어가도록 수정
           setCombinedResult(prevResult => {
             if (!prevResult) return null;
-            const { analysisText: updatedAnalysisText, needsDetailedDiagnosis, showChatButton: shouldShowChatButton } = 
-              processStep2Result(baseAnalysisText, step2Data, errorStep2 || undefined);
+            const { analysisText: updatedAnalysisText } = 
+              processStep2Result(baseAnalysisText, step2Data, errorStep2 || undefined); // errorStep2를 processStep2Result에 전달
             
-            if (needsDetailedDiagnosis) {
-              setShowDetailedDiagnosisButton(true);
-              setShowChatWithAIButton(false);
-            }else if (shouldShowChatButton && !prevResult.step1Result?.is_normal) {
-                setShowChatWithAIButton(true);
-                setShowDetailedDiagnosisButton(false); 
+            if (!step1IsNormal) { // Step 1이 비정상인 경우
+              setShowDetailedDiagnosisButton(true); // 세부 진단 버튼 표시
+              // setShowChatWithAIButton(false); // AI 채팅 버튼은 항상 false 또는 관련 로직 완전 제거
             }
             
             return {
@@ -120,45 +109,44 @@ function DiagnosisResultContent() {
               currentAnalysisText: updatedAnalysisText,
             };
           });
-          
-          return true; // 폴링 성공
+          return true;
         }
-        
-        return false; // 아직 유효한 결과 없음, 계속 폴링
+        // 결과가 아직 없으면 false 반환하여 계속 폴링
+        return false; 
       } catch (err) {
         console.error("Step2 폴링 중 에러:", err);
-        return false;
+        stopPolling(); // 에러 발생 시 폴링 중단 및 로딩 상태 false
+        setCombinedResult(prevResult => {
+            if (!prevResult) return null;
+            return {
+                ...prevResult,
+                currentAnalysisText: processStep2Result(baseAnalysisText, null, err instanceof Error ? err.message : "알 수 없는 오류").analysisText,
+            };
+        });
+        return false; 
       }
     };
     
-    // 폴링을 중단하는 함수
     const stopPolling = () => {
       if (pollingStatusRef.current.intervalId) {
         clearInterval(pollingStatusRef.current.intervalId);
         pollingStatusRef.current.intervalId = null;
       }
       pollingStatusRef.current.isPolling = false;
-      setStep2Polling(false);
+      setStep2Polling(false); // 폴링 종료 시 로딩 상태 false
     };
     
-    // 최초 한 번 즉시 폴링 시도
     const initialSuccess = await pollStep2Results();
     if (initialSuccess) return;
     
-    // 초기 시도 실패 시 인터벌로 주기적 폴링 실행
     const intervalId = setInterval(async () => {
-      // 이미 폴링이 중단되었으면 인터벌도 정리
       if (!pollingStatusRef.current.isPolling) {
         clearInterval(intervalId);
         return;
       }
-      
-      // 최대 시도 횟수 초과 시 폴링 중단
       if (pollingStatusRef.current.attempts >= MAX_POLLING_ATTEMPTS) {
         console.log("⚠️ Step2 데이터 폴링 최대 시도 횟수 도달");
         stopPolling();
-        
-        // 타임아웃 메시지 추가
         setCombinedResult(prevResult => {
           if (!prevResult) return null;
           return {
@@ -166,22 +154,16 @@ function DiagnosisResultContent() {
             currentAnalysisText: prevResult.currentAnalysisText + "\n\n질병 카테고리 분석이 지연되고 있습니다. 잠시 후 다시 시도해주세요.",
           };
         });
-        
         return;
       }
-      
       const success = await pollStep2Results();
       if (success) {
         stopPolling();
       }
     }, POLLING_INTERVAL);
-    
-    // 인터벌 ID 저장
     pollingStatusRef.current.intervalId = intervalId;
-    
-    // cleanup 함수
-    return stopPolling;
-  }, [getDiseaseCategory, errorStep2, processStep2Result]); // pollingAttempts 의존성 제거
+    return stopPolling; // useEffect cleanup 함수로 사용될 수 있도록 반환
+  }, [getDiseaseCategory, errorStep2, processStep2Result]);
 
   useEffect(() => {
     if (!idParam) {
@@ -193,8 +175,8 @@ function DiagnosisResultContent() {
 
     async function loadDiagnosisData(currentId: string) {
       setIsLoadingPage(true);
-      setShowDetailedDiagnosisButton(false); // 버튼 상태 초기화
-      setShowChatWithAIButton(false);
+      setShowDetailedDiagnosisButton(false);
+      // setShowChatWithAIButton(false); // AI 채팅 버튼 상태 제거
       try {
         const isNormal = isNormalParam === 'true';
         const confidence = confidenceParam ? parseFloat(confidenceParam) : undefined;
@@ -213,7 +195,7 @@ function DiagnosisResultContent() {
           baseAnalysisText = "질병이 의심됩니다. AI가 추가 분석을 진행합니다.";
         }
         if (confidence !== undefined) {
-          const confidencePercentage = (confidence * 100).toFixed(2);
+          const confidencePercentage = (Math.min(99.99, confidence * 100)).toFixed(2);
           baseAnalysisText += `\n(초기 판단 신뢰도: ${confidencePercentage}%)`;
         }
 
@@ -227,9 +209,8 @@ function DiagnosisResultContent() {
 
         setIsLoadingPage(false);
 
-        // 질병 의심 상태인 경우에만 Step2 폴링 시작
         if (!isNormal) {
-          pollStep2Data(currentId, baseAnalysisText);
+          pollStep2Data(currentId, baseAnalysisText, isNormal);
         }
       } catch (error) {
         console.error("Error loading diagnosis data:", error);
@@ -240,9 +221,7 @@ function DiagnosisResultContent() {
     
     loadDiagnosisData(idParam);
     
-    // 컴포넌트 언마운트 시 폴링 중단
-    return () => {
-      // 인터벌 정리
+    return () => { // Cleanup 함수
       if (pollingStatusRef.current.intervalId) {
         clearInterval(pollingStatusRef.current.intervalId);
         pollingStatusRef.current.intervalId = null;
@@ -250,7 +229,7 @@ function DiagnosisResultContent() {
       pollingStatusRef.current.isPolling = false;
       setStep2Polling(false);
     };
-  }, [idParam, isNormalParam, imageUrlParam, confidenceParam, pollStep2Data]);
+  }, [idParam, isNormalParam, imageUrlParam, confidenceParam, pollStep2Data]); // pollStep2Data를 의존성 배열에 추가
 
 
   if (isLoadingPage) {
@@ -297,10 +276,6 @@ function DiagnosisResultContent() {
             {statusText}
           </span>
         </div>
-
-        <p className="text-sm text-gray-500 mb-6">
-          진단 ID: {step1Result.id}
-        </p>
         
         <div className={`${
             isNormal ? "bg-green-50" : "bg-red-50"
@@ -311,14 +286,12 @@ function DiagnosisResultContent() {
           </div>
           <p className="text-sm text-gray-600 mb-1">수의사 AI의 진단 의견입니다.</p>
           
-          {(loadingStep2 || step2Polling) && !isNormal && (
+          {/* Step 2 폴링 중 로딩 스피너 표시 */}
+          {step2Polling && !isNormal && (
             <div className="flex items-center justify-center my-3">
               <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
               <p className="ml-2 text-sm text-blue-600">
-                {step2Polling 
-                  ? `질병 카테고리 분석 중...` 
-                  : "추가 분석 중..."
-                }
+                질병 카테고리 분석 중...
               </p>
             </div>
           )}
@@ -328,8 +301,8 @@ function DiagnosisResultContent() {
           </p>
         </div>
 
-        {/* 세부 진단 필요 메시지 및 버튼 표시 조건 */}
-        {!isNormal && showDetailedDiagnosisButton && !loadingStep2 && step1Result.id && (
+        {/* 비정상이고, Step2 폴링이 끝났고 (step2Polling === false), ID가 있을 때 세부 진단 버튼 표시 */}
+        {!isNormal && showDetailedDiagnosisButton && !step2Polling && step1Result.id && (
           <div className="mt-6 text-center p-4 border border-blue-300 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-700 mb-3">
               세부 질병 진단을 위해 추가 질문이 필요합니다.
@@ -343,22 +316,11 @@ function DiagnosisResultContent() {
           </div>
         )}
 
-        {!isNormal && showChatWithAIButton && !loadingStep2 && step1Result.id && step2Result && step2Result.category && (
-          <div className="mt-6 text-center p-4 border border-green-300 bg-green-50 rounded-lg">
-            <p className="text-sm text-green-700 mb-3">
-              AI와 상담하여 질병에 대해 더 알아보세요.
-            </p>
-            <button
-              onClick={() => {
-                const initialChatMessage = `AI 진단 결과, ${step2Result.category}(으)로 의심됩니다. 이 질병에 대해 더 자세히 알고 싶어요.`;
-                router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`);
-              }}
-              className="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md"
-            >
-              AI와 채팅 시작
-            </button>
-          </div>
+        {/* AI 채팅 버튼 관련 UI 완전 삭제 */}
+        {/* {!isNormal && showChatWithAIButton && !step2Polling && step1Result.id && step2Result && step2Result.category && (
+          // ... AI 채팅 버튼 UI ...
         )}
+        */}
 
         <div className="mt-8 text-center">
             <button
