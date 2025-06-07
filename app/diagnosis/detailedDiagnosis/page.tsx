@@ -9,7 +9,7 @@ import Header from "@/components/header"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useDiagnosis } from "@/hooks/use-diagnosis"
 import { DiagnosisAttribute, SubmittedAttribute, DetailedDiagnosisResponse } from "@/api/diagnosis/diagnosis.types"
-import { Loader2 } from "lucide-react"
+import { Loader2, Stethoscope, ClipboardList, AlertTriangle, Home, MessageSquarePlus } from "lucide-react"
 import Image from "next/image" 
 
 interface DynamicFormData {
@@ -155,81 +155,104 @@ function EyeDiagnosisFormContent() {
   }
   
   if (uiState === "SHOWING_FINAL_RESULT" && finalResult) {
-    //이 값이 새로운 채팅 새 메시지로 사용됨
     const initialChatMessage = `진단된 질병: ${finalResult.category}`;
-  const confidencePercentage = (finalResult.confidence * 100).toFixed(1);
-  
-  // 상세 설명을 줄바꿈 기준으로 나누고, 간단한 마크다운 문법을 처리하는 함수
-  const renderDescription = (text: string) => {
-    return text.split('\n').map((line, index) => {
-      if (line.startsWith('## ')) {
-        return <h3 key={index} className="text-xl font-bold mt-6 mb-3 text-gray-800">{line.substring(3)}</h3>;
-      }
-      if (line.startsWith('**') && line.endsWith('**')) {
-        return <p key={index} className="font-semibold text-gray-700 my-2">{line.substring(2, line.length - 2)}</p>;
-      }
-      if (line.startsWith('* ')) {
-        return <li key={index} className="ml-5 list-disc text-gray-600">{line.substring(4)}</li>;
-      }
-      if (line.trim() === '') {
-        return <br key={index} />;
-      }
-      return <p key={index} className="text-gray-600 leading-relaxed">{line}</p>;
-    });
-  };
+    const confidencePercentage = (finalResult.confidence * 100).toFixed(1);
 
-  return (
-    <div className="pb-16 bg-gray-50 min-h-screen">
-      <Header title="최종 AI 진단 결과" backUrl={diagnosisIdFromParams ? `/diagnosis/result?id=${diagnosisIdFromParams}` : "/"} />
-      
-      <div className="px-4 py-6 space-y-6">
-        {/* --- 1. AI 핵심 분석 카드 (기존 UI 개선) --- */}
-        <div className="bg-blue-50 p-6 rounded-lg shadow-md border border-blue-100">
-          <div className="flex items-center gap-3 mb-4">
-            <Image src="/images/robot-icon.png" alt="AI" width={32} height={32} />
-            <h2 className="text-xl font-semibold text-blue-800">AI 최종 분석 요약</h2>
-          </div>
-          <div className="space-y-2">
-            <p className="text-lg text-gray-800">
-              진단된 질병명: <strong className="text-blue-600">{finalResult.category}</strong>
-            </p>
-            <p className="text-md text-gray-600">
-              신뢰도: <strong className="font-semibold">{confidencePercentage}%</strong>
-            </p>
-          </div>
-        </div>
+    // 상세 설명을 파싱하고 렌더링하는 함수 (디자인 디테일 추가)
+    const renderDescription = (text: string) => {
+        const cleanedText = text.replace(/\*\*/g, '');
+        return cleanedText.split('\n').map((line, index) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine === '') return null;
+            
+            // "## 의료 보고서"와 같은 메인 제목
+            if (trimmedLine.startsWith('## ')) {
+                // 이 부분은 카드 제목으로 대체되었으므로 렌더링하지 않음
+                return null;
+            }
 
-        {/* --- 2. 상세 설명 섹션 (새로 추가) --- description 부분 나중에 수정(api에서 받아오는거중에 description 정보 추가가) */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-            <h3 className="text-xl font-bold text-gray-800 mb-4">상세 분석 및 관리 안내</h3>
-            <div className="space-y-4">
-                {renderDescription(finalResult.description)} 
+            // "1. 진단 결과 요약"과 같은 섹션 제목
+            if (/^\d+\.\s/.test(trimmedLine)) {
+                return <h3 key={index} className="text-lg font-bold text-gray-800 mt-8 mb-4 pb-2 border-b border-gray-200">{trimmedLine}</h3>;
+            }
+
+            // "* 분비물 특성:" 과 같은 목록
+            if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('• ')) {
+                const content = trimmedLine.substring(1).trim();
+                const parts = content.split(':');
+                return (
+                    <div key={index} className="flex items-start pl-1 mt-3">
+                        <span className="text-blue-500 font-bold mt-1 mr-3">•</span>
+                        <p className="flex-1 text-slate-700 leading-relaxed">
+                            <span className="font-semibold text-slate-800">{parts[0]}:</span>
+                            {parts.slice(1).join(':')}
+                        </p>
+                    </div>
+                );
+            }
+            
+            return <p key={index} className="text-slate-600 leading-relaxed">{trimmedLine}</p>;
+        });
+    };
+
+    return (
+      <div className="pb-24 bg-slate-50 min-h-screen">
+        <Header title="최종 AI 진단 결과" backUrl={diagnosisIdFromParams ? `/diagnosis/result?id=${diagnosisIdFromParams}` : "/"} />
+        
+        <div className="px-4 py-6 space-y-5">
+          {/* --- 1. AI 핵심 분석 요약 카드 (디자인 개선) --- */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+            <div className="flex items-center gap-3 mb-4 text-blue-600">
+              <Stethoscope className="h-6 w-6" />
+              <h2 className="text-xl font-bold">AI 진단 요약</h2>
             </div>
-        </div>
-
-        {/* --- 3. 주의사항 및 액션 버튼 --- */}
-        <div className="mt-4 text-center">
-            <p className="text-sm text-gray-700 bg-yellow-100 p-3 rounded-lg">
-                <strong>주의:</strong> AI의 분석 결과이며, 정확한 진단과 치료는 반드시 수의사와 상담하시기 바랍니다.
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-                <button
-                    onClick={() => router.push('/')} 
-                    className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors text-base font-medium shadow-md"
-                >
-                    홈으로 돌아가기
-                </button>
-                <button
-                    onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`)}
-                    className="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md w-full sm:w-auto"
-                >
-                    AI와 채팅 시작
-                </button>
+            <div className="space-y-2 text-base">
+              <p className="text-slate-800">
+                진단명: <strong className="font-bold text-blue-700">{finalResult.category}</strong>
+              </p>
+              <p className="text-slate-600">
+                신뢰도: <strong className="font-bold">{confidencePercentage}%</strong>
+              </p>
             </div>
+          </div>
+
+          {/* --- 2. 상세 설명 섹션 (디자인 개선) --- */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+            <div className="flex items-center gap-3 mb-4 text-blue-600">
+              <ClipboardList className="h-6 w-6" />
+              <h2 className="text-xl font-bold">상세 분석 및 관리 안내</h2>
+            </div>
+            <div className="space-y-2">
+              {renderDescription(finalResult.description)}
+            </div>
+          </div>
+
+          {/* --- 3. 주의사항 및 액션 버튼 (디자인 개선) --- */}
+          <div className="mt-6 text-center space-y-6">
+              <div className="bg-amber-100/60 p-4 rounded-lg border border-amber-200 flex items-start text-left gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                  <p className="flex-1 text-sm text-amber-800">
+                      <strong>주의:</strong> AI의 분석 결과는 참고용이며, 정확한 진단과 치료는 반드시 수의사와 상담하시기 바랍니다.
+                  </p>
+              </div>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                  <button
+                      onClick={() => router.push('/')} 
+                      className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors text-base font-medium shadow-md"
+                  >
+                      <Home className="h-5 w-5" /> 홈으로
+                  </button>
+                  <button
+                      onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`)}
+                      className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md"
+                  >
+                      <MessageSquarePlus className="h-5 w-5" /> AI와 채팅
+                  </button>
+              </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
 }
 
   // 질문 입력 폼 UI (uiState === "QUESTION_FORM")
