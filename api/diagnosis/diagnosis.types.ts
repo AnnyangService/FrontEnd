@@ -37,5 +37,6 @@ export interface DetailedDiagnosisRequestBody {
 export interface DetailedDiagnosisResponse {
   diagnosis_id: string;
   category: string; // 예: "keratitis" - 세부 질병명
+  description: string; //질병 설명명
   confidence: number;
 }

@@ -99,12 +99,13 @@ export const DiagnosisAPI = {
     console.log(`🐾 질병 세부 속성 조회 요청: ID=${diagnosisId}`);
     
     // 모킹 데이터
+    //질문 개수 정해져있으면 이거 그냥 프론트엔드단으로 옮기기
     const mockResponse: DiagnosisStep3AttributesResponse = {
       attributes: [
-        { id: 1, description: "눈물이 과도하게 나오나요?" },
-        { id: 2, description: "눈 주변에 분비물이 있나요?" },
-        { id: 3, description: "눈을 자주 비비거나 가려워하나요?" },
-        { id: 4, description: "눈 주변 털이 젖어있거나 엉겨있나요?" }
+        { id: 1, description: "분미물의 특성은 어떤가요?" },
+        { id: 2, description: "질병의 진행 속도는 어떤편인가요?" },
+        { id: 3, description: "주요 증상을 자세하게 알려주세요" },
+        { id: 4, description: "한쪽 눈에만 증상이 있나요? 양쪽눈에 증상이 있나요?" }
       ]
     };
     
