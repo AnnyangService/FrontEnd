@@ -118,12 +118,12 @@ export function useDiagnosis() {
   const submitDetailedDiagnosis = useCallback(async (
     requestData: DetailedDiagnosisRequestBody
   ): Promise<DetailedDiagnosisResponse | null> => {
-    setLoadingDetailedDiagnosis(true);
+    setLoadingDetailedDiagnosis(true);[]
     setErrorDetailedDiagnosis(null);
     setDetailedDiagnosisResult(null);
 
     // 요청 데이터 유효성 검사
-    if (!requestData.diagnosis_id || !requestData.attributes || requestData.attributes.length === 0) {
+    if (!requestData.diagnosisId || !requestData.userResponses || requestData.userResponses.length === 0) {
       setErrorDetailedDiagnosis("진단 ID와 선택된 속성 값들이 필요합니다.");
       setLoadingDetailedDiagnosis(false);
       return null;

@@ -99,14 +99,14 @@ function EyeDiagnosisFormContent() {
 
     const submittedAttributes: SubmittedAttribute[] = questions
       .map(q => ({
-        id: q.id, 
-        description: formData[String(q.id)] 
+        diagnosisRuleId: q.id.toString(), 
+        userResponse: formData[String(q.id)] 
       }));
 
     try {
       const response = await submitDetailedDiagnosis({
-        diagnosis_id: currentDiagnosisId, 
-        attributes: submittedAttributes,
+        diagnosisId: currentDiagnosisId, 
+        userResponses: submittedAttributes,
       });
 
       if (response) {

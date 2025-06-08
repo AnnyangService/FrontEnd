@@ -25,13 +25,13 @@ export interface DiagnosisStep3AttributesResponse {
 }
 
 export interface SubmittedAttribute {
-  id: number;
-  description: string;
+  diagnosisRuleId: string;
+  userResponse: string;
 }
 
 export interface DetailedDiagnosisRequestBody {
-  diagnosis_id: string;
-  attributes: SubmittedAttribute[];
+  diagnosisId: string;
+  userResponses: SubmittedAttribute[];
 }
 
 export interface DetailedDiagnosisResponse {
