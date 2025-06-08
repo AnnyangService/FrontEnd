@@ -210,9 +210,7 @@ function EyeDiagnosisFormContent() {
               <p className="text-slate-800">
                 진단명: <strong className="font-bold text-blue-700">{finalResult.category}</strong>
               </p>
-              <p className="text-slate-600">
-                신뢰도: <strong className="font-bold">{confidencePercentage}%</strong>
-              </p>
+              
             </div>
           </div>
 

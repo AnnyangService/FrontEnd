@@ -102,10 +102,10 @@ export const DiagnosisAPI = {
     //질문 개수 정해져있으면 이거 그냥 프론트엔드단으로 옮기기
     const mockResponse: DiagnosisStep3AttributesResponse = {
       attributes: [
-        { id: 1, description: "분미물의 특성은 어떤가요?" },
-        { id: 2, description: "질병의 진행 속도는 어떤편인가요?" },
+        { id: 1, description: "분비물의 특성은 어떤가요?" },
+        { id: 2, description: "질병의 진행 속도는 어떤 편인가요?" },
         { id: 3, description: "주요 증상을 자세하게 알려주세요" },
-        { id: 4, description: "한쪽 눈에만 증상이 있나요? 양쪽눈에 증상이 있나요?" }
+        { id: 4, description: "한쪽 눈에만 증상이 있나요? 양쪽 눈에 증상이 있나요?" }
       ]
     };
     
