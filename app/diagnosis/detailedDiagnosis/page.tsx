@@ -160,40 +160,61 @@ function EyeDiagnosisFormContent() {
 
     // 상세 설명을 파싱하고 렌더링하는 함수 (디자인 디테일 추가)
     const renderDescription = (text: string) => {
-        const cleanedText = text.replace(/\*\*/g, '');
-        return cleanedText.split('\n').map((line, index) => {
-            const trimmedLine = line.trim();
-            if (trimmedLine === '') return null;
-            
-            // "## 의료 보고서"와 같은 메인 제목
-            if (trimmedLine.startsWith('## ')) {
-                // 이 부분은 카드 제목으로 대체되었으므로 렌더링하지 않음
-                return null;
-            }
+    // 1. 텍스트에서 모든 '**' 마크다운을 제거합니다.
+    const cleanedText = text.replace(/\*\*/g, '');
 
-            // "1. 진단 결과 요약"과 같은 섹션 제목
-            if (/^\d+\.\s/.test(trimmedLine)) {
-                return <h3 key={index} className="text-lg font-bold text-gray-800 mt-8 mb-4 pb-2 border-b border-gray-200">{trimmedLine}</h3>;
-            }
+    // 2. 줄바꿈 기준으로 나누어 각 줄을 처리합니다.
+    return cleanedText.split('\n').map((line, index) => {
+      const trimmedLine = line.trim();
+      
+      // 비어있는 줄은 렌더링하지 않습니다.
+      if (trimmedLine === '') return null;
+      
+      // "##"으로 시작하는 메인 제목은 렌더링하지 않습니다.
+      if (trimmedLine.startsWith('## ')) {
+        return null;
+      }
 
-            // "* 분비물 특성:" 과 같은 목록
-            if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('• ')) {
-                const content = trimmedLine.substring(1).trim();
-                const parts = content.split(':');
-                return (
-                    <div key={index} className="flex items-start pl-1 mt-3">
-                        <span className="text-blue-500 font-bold mt-1 mr-3">•</span>
-                        <p className="flex-1 text-slate-700 leading-relaxed">
-                            <span className="font-semibold text-slate-800">{parts[0]}:</span>
-                            {parts.slice(1).join(':')}
-                        </p>
-                    </div>
-                );
-            }
-            
-            return <p key={index} className="text-slate-600 leading-relaxed">{trimmedLine}</p>;
-        });
-    };
+      // "1. "로 시작하는 섹션 제목
+      if (/^\d+\.\s/.test(trimmedLine)) {
+        return <h3 key={index} className="text-lg font-bold text-gray-800 mt-8 mb-4 pb-2 border-b border-gray-200">{trimmedLine}</h3>;
+      }
+
+      // --- 여기가 수정된 부분입니다 ---
+      // "*" 또는 "•"로 시작하는 목록
+      if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('• ')) {
+        const content = trimmedLine.substring(1).trim();
+        
+        // 콜론이 포함된 경우 (예: "* 항목: 설명")
+        if (content.includes(':')) {
+            const parts = content.split(':');
+            return (
+                <div key={index} className="flex items-start pl-1 mt-3">
+                    <span className="text-blue-500 font-bold mt-1 mr-3">•</span>
+                    <p className="flex-1 text-slate-700 leading-relaxed">
+                        <span className="font-semibold text-slate-800">{parts[0]}:</span>
+                        {parts.slice(1).join(':')}
+                    </p>
+                </div>
+            );
+        } 
+        // 콜론이 없는 경우 (예: "* 일반 텍스트")
+        else {
+            return (
+                <div key={index} className="flex items-start pl-1 mt-3">
+                    <span className="text-blue-500 font-bold mt-1 mr-3">•</span>
+                    <p className="flex-1 text-slate-700 leading-relaxed">
+                        {content}
+                    </p>
+                </div>
+            );
+        }
+      }
+      
+      // 그 외 일반 문단
+      return <p key={index} className="text-slate-600 leading-relaxed">{trimmedLine}</p>;
+    });
+  };
 
     return (
       <div className="pb-24 bg-slate-50 min-h-screen">
