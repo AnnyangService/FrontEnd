@@ -34,9 +34,35 @@ export interface DetailedDiagnosisRequestBody {
   userResponses: SubmittedAttribute[];
 }
 
-export interface DetailedDiagnosisResponse {
+/*export interface DetailedDiagnosisResponse {
   diagnosis_id: string;
   category: string; // 예: "keratitis" - 세부 질병명
   description: string; //질병 설명명
   confidence: number;
+}*/
+
+export interface AttributeAnalysis {
+  user_input: string;
+  most_similar_disease: string;
+  similarity: number;
+  all_similarities: { [key: string]: number };
+  llm_analysis: string;
+}
+
+export interface DetailedDiagnosisData {
+  category: string;
+  summary: string;
+  details: string;
+  attribute_analysis: {
+    [key: string]: AttributeAnalysis;
+  };
+}
+
+export interface DetailedDiagnosisResponse {
+  category: string;
+  summary: string;
+  details: string;
+  attribute_analysis: {
+    [key: string]: AttributeAnalysis;
+  };
 }

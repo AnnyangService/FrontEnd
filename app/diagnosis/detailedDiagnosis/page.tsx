@@ -1,16 +1,12 @@
 "use client"
 
-/*일단 결과값 이페이지에서 보이게
-  나중에 채팅으로 이동하거나 결과페이지 생성??
-*/
-
-import { Suspense, useState, useEffect, useCallback } from "react"
+import { Suspense, useState, useEffect } from "react"
 import Header from "@/components/header"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useDiagnosis } from "@/hooks/use-diagnosis"
 import { DiagnosisAttribute, SubmittedAttribute, DetailedDiagnosisResponse } from "@/api/diagnosis/diagnosis.types"
-import { Loader2, Stethoscope, ClipboardList, AlertTriangle, Home, MessageSquarePlus } from "lucide-react"
-import Image from "next/image" 
+import { Loader2, Stethoscope, ClipboardList, AlertTriangle, Home, MessageSquarePlus, ChevronDown, CheckCircle2 } from "lucide-react"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 
 interface DynamicFormData {
   [key: string]: string;
@@ -18,16 +14,61 @@ interface DynamicFormData {
 
 type UIState = "LOADING_QUESTIONS" | "QUESTION_FORM" | "SUBMITTING_ANSWERS" | "SHOWING_FINAL_RESULT" | "ERROR_STATE";
 
+// 텍스트를 파싱하여 제목과 내용으로 나누는 헬퍼 함수
+const parseContent = (text: string) => {
+    if (!text) return [];
+    // 제목 형식: # 1. 제목 / # 2. 제목 등
+    const sections = text.split(/(?=# \d+\. )/g).filter(s => s.trim() !== '');
+    return sections.map(section => {
+      const lines = section.trim().split('\n');
+      const title = lines[0] || '';
+      const content = lines.slice(1).join('\n');
+      return { title, content };
+    });
+};
+  
+// Markdown 형식의 텍스트를 JSX로 렌더링하는 컴포넌트
+function MarkdownRenderer({ content }: { content: string }) {
+    if(!content) return null;
+
+    // '**'를 <strong> 태그로 변환합니다.
+    const boldedContent = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+    return boldedContent.split('\n').map((line, index) => {
+        const trimmedLine = line.trim();
+        if (trimmedLine === '') return null;
+
+        if (trimmedLine.startsWith('## [')) {
+            return <h4 key={index} className="text-md font-semibold text-gray-700 mt-4 mb-2">{trimmedLine.replace('## [', '').replace(']', '')}</h4>;
+        }
+
+        if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('• ')) {
+            const itemContent = trimmedLine.substring(1).trim();
+            const colonIndex = itemContent.indexOf(':');
+            const hasColon = colonIndex !== -1;
+            const parts = hasColon
+                ? [itemContent.slice(0, colonIndex), itemContent.slice(colonIndex + 1)]
+                : [itemContent];
+
+            return (
+                <div key={index} className="flex items-start pl-1 mt-2">
+                    <span className="text-blue-500 font-bold mt-1 mr-2">•</span>
+                     <p className="flex-1 text-slate-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: hasColon ? `<span class="font-semibold text-slate-800">${parts[0]}:</span>${parts[1]}` : itemContent }} />
+                </div>
+            );
+        }
+        
+        return <p key={index} className="text-slate-600 leading-relaxed mt-2" dangerouslySetInnerHTML={{ __html: trimmedLine }}/>;
+    });
+}
+
+
 function EyeDiagnosisFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const diagnosisIdFromParams = searchParams.get('id'); // string | null
+  const diagnosisIdFromParams = searchParams.get('id');
 
-  const { 
-    getDiagnosisAttributes, 
-    submitDetailedDiagnosis,
-    // errorAttributes // pageError 상태로 직접 관리
-  } = useDiagnosis();
+  const { getDiagnosisAttributes, submitDetailedDiagnosis } = useDiagnosis();
 
   const [questions, setQuestions] = useState<DiagnosisAttribute[]>([]);
   const [formData, setFormData] = useState<DynamicFormData>({});
@@ -35,12 +76,10 @@ function EyeDiagnosisFormContent() {
   const [uiState, setUiState] = useState<UIState>("LOADING_QUESTIONS");
   const [pageError, setPageError] = useState<string | null>(null);
 
-
   useEffect(() => {
-    // diagnosisIdFromParams가 유효한 문자열일 때만 fetchAttributes를 실행합니다.
     if (typeof diagnosisIdFromParams === 'string' && diagnosisIdFromParams.length > 0) {
       setUiState("LOADING_QUESTIONS");
-      async function fetchAttributes(currentId: string) { // 명시적으로 string 타입 인자 받도록 수정
+      async function fetchAttributes(currentId: string) {
         try {
           const attributesResponse = await getDiagnosisAttributes(currentId);
           if (attributesResponse && attributesResponse.attributes) {
@@ -53,27 +92,23 @@ function EyeDiagnosisFormContent() {
             setUiState("QUESTION_FORM");
             setPageError(null);
           } else {
-            // getDiagnosisAttributes가 null을 반환하거나 attributes가 없는 경우
-            // useDiagnosis 훅의 errorAttributes 상태를 참조하거나 일반 메시지 사용
-            // const hookError = useDiagnosis().errorAttributes; // 훅 상태 직접 참조 대신 catch로 일관되게 처리
             throw new Error("질문 목록을 가져오는데 실패했습니다. (응답 데이터 문제)");
           }
         } catch (err) {
-            const errorMessage = err instanceof Error ? err.message : "질문 목록 로딩 중 알 수 없는 오류 발생";
-            console.error("Error fetching attributes:", err);
-            setPageError(errorMessage);
-            setUiState("ERROR_STATE");
+          const errorMessage = err instanceof Error ? err.message : "질문 목록 로딩 중 알 수 없는 오류 발생";
+          console.error("Error fetching attributes:", err);
+          setPageError(errorMessage);
+          setUiState("ERROR_STATE");
         }
       }
-      fetchAttributes(diagnosisIdFromParams); // 이 시점에서 diagnosisIdFromParams는 string
+      fetchAttributes(diagnosisIdFromParams);
     } else {
-      // diagnosisIdFromParams가 null이거나 빈 문자열인 경우
       console.error("Diagnosis ID is missing or invalid from URL.");
       setPageError("잘못된 접근입니다. 유효한 진단 ID가 필요합니다.");
       setUiState("ERROR_STATE");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [diagnosisIdFromParams, getDiagnosisAttributes, router]); // errorAttributes 의존성 제거 (훅 내부 처리)
+  }, [diagnosisIdFromParams]);
 
   const handleChange = (questionId: number, value: string) => {
     setFormData(prev => ({ ...prev, [String(questionId)]: value }));
@@ -85,13 +120,10 @@ function EyeDiagnosisFormContent() {
   });
 
   const handleSubmit = async () => {
-    // diagnosisIdFromParams가 유효한 문자열인지 다시 한번 확인
     if (!isComplete || typeof diagnosisIdFromParams !== 'string' || !diagnosisIdFromParams) {
-        setPageError("모든 질문에 답변해야 하거나, 진단 ID가 유효하지 않습니다.");
-        if (!diagnosisIdFromParams) console.error("handleSubmit: Diagnosis ID is null or undefined.");
-        return;
+      setPageError("모든 질문에 답변해야 하거나, 진단 ID가 유효하지 않습니다.");
+      return;
     }
-    // 이 시점에서 diagnosisIdFromParams는 string 타입임이 보장됩니다.
     const currentDiagnosisId: string = diagnosisIdFromParams;
 
     setUiState("SUBMITTING_ANSWERS");
@@ -99,23 +131,21 @@ function EyeDiagnosisFormContent() {
 
     const submittedAttributes: SubmittedAttribute[] = questions
       .map(q => ({
-        diagnosisRuleId: q.id.toString(), 
-        userResponse: formData[String(q.id)] 
+        diagnosisRuleId: q.id.toString(),
+        userResponse: formData[String(q.id)]
       }));
 
     try {
       const response = await submitDetailedDiagnosis({
-        diagnosisId: currentDiagnosisId, 
+        diagnosisId: currentDiagnosisId,
         userResponses: submittedAttributes,
       });
 
-      if (response) {
+      if (response && response.category) {
         setFinalResult(response);
         setUiState("SHOWING_FINAL_RESULT");
       } else {
-        // submitDetailedDiagnosis가 null을 반환하고, 훅 내부의 errorDetailedDiagnosis에 에러 메시지가 설정될 수 있음
-        // (useDiagnosis 훅의 errorDetailedDiagnosis 상태를 직접 참조하는 것을 고려할 수 있음)
-        throw new Error("세부 진단 제출 후 응답이 없습니다. 서버 오류일 수 있습니다.");
+        throw new Error("세부 진단 제출 후 유효한 응답이 없습니다. 서버 오류일 수 있습니다.");
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "세부 진단 제출 중 알 수 없는 에러가 발생했습니다.";
@@ -125,12 +155,14 @@ function EyeDiagnosisFormContent() {
     }
   };
 
-  // UI 렌더링 로직
-  if (uiState === "LOADING_QUESTIONS") {
+  // --- UI 렌더링 로직 ---
+  if (uiState === "LOADING_QUESTIONS" || uiState === "SUBMITTING_ANSWERS") {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-        <p className="mt-4 text-lg">질문 목록을 불러오는 중...</p>
+        <p className="mt-4 text-lg">
+            {uiState === 'SUBMITTING_ANSWERS' ? '결과를 분석 중입니다...' : '질문 목록을 불러오는 중...'}
+        </p>
       </div>
     );
   }
@@ -156,125 +188,122 @@ function EyeDiagnosisFormContent() {
   
   if (uiState === "SHOWING_FINAL_RESULT" && finalResult) {
     const initialChatMessage = `진단된 질병: ${finalResult.category}`;
-    const confidencePercentage = (finalResult.confidence * 100).toFixed(1);
-
-    // 상세 설명을 파싱하고 렌더링하는 함수 (디자인 디테일 추가)
-    const renderDescription = (text: string) => {
-    // 1. 텍스트에서 모든 '**' 마크다운을 제거합니다.
-    const cleanedText = text.replace(/\*\*/g, '');
-
-    // 2. 줄바꿈 기준으로 나누어 각 줄을 처리합니다.
-    return cleanedText.split('\n').map((line, index) => {
-      const trimmedLine = line.trim();
-      
-      // 비어있는 줄은 렌더링하지 않습니다.
-      if (trimmedLine === '') return null;
-      
-      // "##"으로 시작하는 메인 제목은 렌더링하지 않습니다.
-      if (trimmedLine.startsWith('## ')) {
-        return null;
-      }
-
-      // "1. "로 시작하는 섹션 제목
-      if (/^\d+\.\s/.test(trimmedLine)) {
-        return <h3 key={index} className="text-lg font-bold text-gray-800 mt-8 mb-4 pb-2 border-b border-gray-200">{trimmedLine}</h3>;
-      }
-
-      // --- 여기가 수정된 부분입니다 ---
-      // "*" 또는 "•"로 시작하는 목록
-      if (trimmedLine.startsWith('* ') || trimmedLine.startsWith('• ')) {
-        const content = trimmedLine.substring(1).trim();
-        
-        // 콜론이 포함된 경우 (예: "* 항목: 설명")
-        if (content.includes(':')) {
-            const parts = content.split(':');
-            return (
-                <div key={index} className="flex items-start pl-1 mt-3">
-                    <span className="text-blue-500 font-bold mt-1 mr-3">•</span>
-                    <p className="flex-1 text-slate-700 leading-relaxed">
-                        <span className="font-semibold text-slate-800">{parts[0]}:</span>
-                        {parts.slice(1).join(':')}
-                    </p>
-                </div>
-            );
-        } 
-        // 콜론이 없는 경우 (예: "* 일반 텍스트")
-        else {
-            return (
-                <div key={index} className="flex items-start pl-1 mt-3">
-                    <span className="text-blue-500 font-bold mt-1 mr-3">•</span>
-                    <p className="flex-1 text-slate-700 leading-relaxed">
-                        {content}
-                    </p>
-                </div>
-            );
-        }
-      }
-      
-      // 그 외 일반 문단
-      return <p key={index} className="text-slate-600 leading-relaxed">{trimmedLine}</p>;
-    });
-  };
 
     return (
-      <div className="pb-24 bg-slate-50 min-h-screen">
-        <Header title="최종 AI 진단 결과" backUrl={diagnosisIdFromParams ? `/diagnosis/result?id=${diagnosisIdFromParams}` : "/"} />
-        
-        <div className="px-4 py-6 space-y-5">
-          {/* --- 1. AI 핵심 분석 요약 카드 (디자인 개선) --- */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
-            <div className="flex items-center gap-3 mb-4 text-blue-600">
-              <Stethoscope className="h-6 w-6" />
-              <h2 className="text-xl font-bold">AI 진단 요약</h2>
-            </div>
-            <div className="space-y-2 text-base">
-              <p className="text-slate-800">
-                진단명: <strong className="font-bold text-blue-700">{finalResult.category}</strong>
-              </p>
-              
-            </div>
-          </div>
+        <div className="pb-24 bg-slate-50 min-h-screen">
+            <Header title="최종 AI 진단 결과" backUrl={diagnosisIdFromParams ? `/diagnosis/result?id=${diagnosisIdFromParams}` : "/"} />
+            
+            <div className="px-4 py-6 space-y-5">
+                {/* --- 최종 진단명 --- */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+                    <div className="flex items-center gap-3 mb-4 text-blue-600">
+                        <Stethoscope className="h-6 w-6" />
+                        <h2 className="text-xl font-bold">AI 최종 진단</h2>
+                    </div>
+                    <p className="text-2xl text-center font-bold text-slate-800 bg-blue-50 p-5 rounded-lg">
+                        {finalResult.category}
+                    </p>
+                </div>
 
-          {/* --- 2. 상세 설명 섹션 (디자인 개선) --- */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
-            <div className="flex items-center gap-3 mb-4 text-blue-600">
-              <ClipboardList className="h-6 w-6" />
-              <h2 className="text-xl font-bold">상세 분석 및 관리 안내</h2>
-            </div>
-            <div className="space-y-2">
-              {renderDescription(finalResult.description)}
-            </div>
-          </div>
+                {/* --- 진단 요약 --- */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+                    <div className="flex items-center gap-3 mb-4 text-blue-600">
+                        <ClipboardList className="h-6 w-6" />
+                        <h2 className="text-xl font-bold">진단 요약</h2>
+                    </div>
+                    <div className="text-sm text-slate-600 whitespace-pre-line bg-gray-50 p-4 rounded-md">
+                        {finalResult.summary}
+                    </div>
+                </div>
 
-          {/* --- 3. 주의사항 및 액션 버튼 (디자인 개선) --- */}
-          <div className="mt-6 text-center space-y-6">
-              <div className="bg-amber-100/60 p-4 rounded-lg border border-amber-200 flex items-start text-left gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                  <p className="flex-1 text-sm text-amber-800">
-                      <strong>주의:</strong> AI의 분석 결과는 참고용이며, 정확한 진단과 치료는 반드시 수의사와 상담하시기 바랍니다.
-                  </p>
-              </div>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                  <button
-                      onClick={() => router.push('/')} 
-                      className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors text-base font-medium shadow-md"
-                  >
-                      <Home className="h-5 w-5" /> 홈으로
-                  </button>
-                  <button
-                      onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`)}
-                      className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md"
-                  >
-                      <MessageSquarePlus className="h-5 w-5" /> AI와 채팅
-                  </button>
-              </div>
-          </div>
+                
+                
+                {/* --- 증상별 상세 분석 (토글) --- */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+                    <div className="flex items-center gap-3 mb-4 text-blue-600">
+                        <ClipboardList className="h-6 w-6" />
+                        <h2 className="text-xl font-bold">증상별 상세 분석</h2>
+                    </div>
+                    <Accordion type="single" collapsible className="w-full">
+                        {Object.entries(finalResult.attribute_analysis).map(([key, value], index) => (
+                            <AccordionItem value={`attr-${index}`} key={index}>
+                                <AccordionTrigger className="text-md font-semibold text-gray-800 hover:no-underline text-left gap-2 py-4">
+            <div className="flex-1 flex flex-col items-start">
+                <span className="font-bold text-slate-800">{key}</span>
+                {/* 사용자 답변을 여기에 표시합니다 */}
+                <p className="font-normal text-sm text-gray-500 mt-1 text-left italic">
+                    "{value.user_input}"
+                </p>
+            </div>
+        </AccordionTrigger>
+        <AccordionContent className="pt-2 pb-4 px-1 space-y-4 bg-slate-50 rounded-b-lg">
+            {/* AI 분석 결과를 여기에 표시합니다 */}
+            <div className="bg-white p-3 rounded-md mt-2 border">
+                <div className="flex items-center gap-2 text-sm text-blue-600 font-medium">
+                    <CheckCircle2 className="h-4 w-4"/>
+                    <span>{value.most_similar_disease} (유사도: {(value.similarity * 100).toFixed(1)}%)</span>
+                </div>
+            </div>
+            <MarkdownRenderer content={value.llm_analysis} />
+        </AccordionContent>
+                                <AccordionContent className="pt-2 pb-4 px-1 space-y-4 bg-slate-50 rounded-b-lg">
+                                   
+                                   <MarkdownRenderer content={value.llm_analysis} />
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </div>
+
+                {/* --- 상세 분석 및 관리 안내 (토글) --- */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
+                    <div className="flex items-center gap-3 mb-4 text-blue-600">
+                        <ClipboardList className="h-6 w-6" />
+                        <h2 className="text-xl font-bold">상세 분석 및 관리 안내</h2>
+                    </div>
+                    <Accordion type="single" collapsible className="w-full">
+                        {parseContent(finalResult.details).map((section, index) => (
+                            <AccordionItem value={`item-${index}`} key={index}>
+                                <AccordionTrigger className="text-lg font-semibold text-gray-800 hover:no-underline text-left">
+                                    {section.title.replace(/#\s\d+\.\s/, '')}
+                                </AccordionTrigger>
+                                <AccordionContent className="pt-2 pb-4 px-1">
+                                <MarkdownRenderer content={section.content} />
+                                </AccordionContent>
+                            </AccordionItem>
+                        ))}
+                    </Accordion>
+                </div>
+
+                {/* --- 주의사항 및 액션 버튼 --- */}
+                <div className="mt-6 text-center space-y-6">
+                    <div className="bg-amber-100/60 p-4 rounded-lg border border-amber-200 flex items-start text-left gap-3">
+                        <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <p className="flex-1 text-sm text-amber-800">
+                            <strong>주의:</strong> AI의 분석 결과는 참고용이며, 정확한 진단과 치료는 반드시 수의사와 상담하시기 바랍니다.
+                        </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                        <button
+                            onClick={() => router.push('/')} 
+                            className="flex items-center justify-center gap-2 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors text-base font-medium shadow-md"
+                        >
+                            <Home className="h-5 w-5" /> 홈으로
+                        </button>
+                        <button
+                            onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`)}
+                            className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md"
+                        >
+                            <MessageSquarePlus className="h-5 w-5" /> AI와 채팅
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     );
-}
+  }
 
-  // 질문 입력 폼 UI (uiState === "QUESTION_FORM")
+  // --- 질문 입력 폼 UI ---
   return (
     <div className="pb-16">
       <Header title="자세한 정보를 알려주세요" backUrl={diagnosisIdFromParams ? `/diagnosis/result?id=${diagnosisIdFromParams}` : "/"} />
@@ -317,19 +346,14 @@ function EyeDiagnosisFormContent() {
         
         <button
           onClick={handleSubmit}
-          disabled={!isComplete || uiState === "SUBMITTING_ANSWERS"}
+          disabled={!isComplete}
           className={`w-full py-3 rounded-lg mt-4 transition text-center font-semibold ${
-            (!isComplete || uiState === "SUBMITTING_ANSWERS")
+            (!isComplete)
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-blue-500 text-white hover:bg-blue-600"
           }`}
         >
-          {uiState === "SUBMITTING_ANSWERS" ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              제출 중...
-            </div>
-          ) : "최종 진단 결과 확인"}
+          {"최종 진단 결과 확인"}
         </button>
       </div>
     </div>

@@ -165,6 +165,28 @@ export default function NewDiagnosisPage() {
           </button>
         </div>
 
+{/* 테스트용 URL 입력 */}
+      {/*
+         <div className="my-4 p-3 border rounded">
+            <h3 className="text-sm font-medium mb-1">테스트용 URL 입력:</h3>
+            <input
+                type="text"
+                value={testImageUrl}
+                onChange={(e) => setTestImageUrl(e.target.value)}
+                placeholder="이미지 URL 붙여넣기"
+                className="w-full p-2 border rounded text-sm mb-2"
+                disabled={isLoading}
+            />
+            <button
+                onClick={handleDiagnoseWithUrl}
+                disabled={isLoading || !testImageUrl.trim()}
+                className="w-full p-2 bg-gray-200 text-black rounded hover:bg-gray-300 disabled:bg-gray-100 text-sm"
+            >
+                URL로 진단 시작
+            </button>
+        </div>
+        */}
+
         {/* 숨겨진 input */}
         <input
           type="file"
