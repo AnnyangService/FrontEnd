@@ -38,6 +38,8 @@ function ChatPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialSessionIdFromUrl = searchParams.get('session_id');
+  const initialMessage = searchParams.get('initialMessage');
+  const diagnosisIdFromUrl = searchParams.get('diagnosis_id');
 
   const {
     sessionId: currentSessionId,
@@ -47,9 +49,9 @@ function ChatPageContent() {
     isFetchingHistory,
     fetchHistoryError,
     fetchChatHistory,
+    sendMessage,
     isSendingMessage,
     sendMessageError,
-    sendMessage,
     setSessionId: setCurrentSessionIdInHook,
   } = useChatting();
 
@@ -80,57 +82,79 @@ function ChatPageContent() {
   }, [messages]);
   
   useEffect(() => {
-    setIsLoadingPage(true);
-    async function initializeChat() {
+    const initializeChat = async () => {
+      setIsLoadingPage(true);
       const loadedChatList = await getChatList();
       setChatList(loadedChatList);
 
-      //URL에있는 초기메시지 가져옴
-      const initialMessage = searchParams.get('initialMessage')
-      
-      let activeChatInfo = null;
+      // Case 1: URL에 session_id가 있는 경우 (기존 채팅방 로드)
       if (initialSessionIdFromUrl) {
-        activeChatInfo = loadedChatList.find(chat => chat.id === initialSessionIdFromUrl);
-      }
+        let activeChatInfo = loadedChatList.find(chat => chat.id === initialSessionIdFromUrl);
 
-      if (initialSessionIdFromUrl && activeChatInfo) {
-        setCurrentSessionIdInHook(initialSessionIdFromUrl);
-        setCurrentChatName(activeChatInfo.name);
-        setCurrentChatMode(activeChatInfo.mode);
-
-        const historyItems = await fetchChatHistory(initialSessionIdFromUrl);
-        if (historyItems) {
-          const formattedMessages: Message[] = historyItems.reduce((acc, item) => {
-            acc.push({ text: item.question, from: "user", typing: false });
-            acc.push({ text: item.answer, from: "bot", documentation: item.document, typing: false });
-            return acc;
-          }, [] as Message[]);
-          setMessages(formattedMessages);
-        } else {
-          setMessages([]);
-          console.error("Failed to fetch chat history:", fetchHistoryError);
+         if (!activeChatInfo) {
+          activeChatInfo = { id: initialSessionIdFromUrl, name: '진행중인 상담', mode: 'eye' };
         }
-      } else {
-        setMessages([]);
+
+        if (activeChatInfo) {
+          setCurrentSessionIdInHook(initialSessionIdFromUrl);
+          setCurrentChatName(activeChatInfo.name);
+          setCurrentChatMode(activeChatInfo.mode);
+          
+          const historyItems = await fetchChatHistory(initialSessionIdFromUrl);
+          if (historyItems) {
+            const formattedMessages: Message[] = historyItems.reduce((acc, item) => {
+              acc.push({ text: item.question, from: "user" });
+              acc.push({ text: item.answer, from: "bot" });
+              return acc;
+            }, [] as Message[]);
+            setMessages(formattedMessages);
+          } else {
+            // 히스토리 로딩 실패 시 에러는 훅 내부에서 처리되므로 여기선 메시지 초기화만 진행
+            setMessages([]);
+          }
+        } else {
+          // URL의 session_id가 목록에 없으면 새 채팅으로 이동
+          router.replace('/chat');
+          return; 
+        }
+      } 
+      // Case 2: URL에 session_id가 없는 경우 (새 채팅 생성)
+      else {
+         setMessages([]);
         const defaultNewChatMode: "eye" | "general" = "eye"; 
         setCurrentChatMode(defaultNewChatMode);
         setCurrentChatName("새로운 채팅");
 
-        //채팅세션 시작
-        const contextForNewChat = initialMessage || ""
-        const newSessionId = await createChatSession(contextForNewChat);
-        if (newSessionId) {
-          router.replace(`/chat?session_id=${newSessionId}`, { scroll: false });
-          setChatList(prev => [{id: newSessionId, name: "새로운 채팅", mode: defaultNewChatMode}, ...prev]);
-          setCurrentSessionIdInHook(newSessionId);
+        let newSessionData;
+
+        // ❗️수정: Case 2를 두 가지 경우로 분기합니다.
+        // Case 2-1: 진단 ID가 있는 경우
+        if (diagnosisIdFromUrl) {
+          const contextForNewChat = initialMessage || "진단 결과에 대해 더 궁금한 점이 있습니다.";
+          // createChatSession 호출 시 diagnosisIdFromUrl을 전달합니다.
+          newSessionData = await createChatSession(contextForNewChat, diagnosisIdFromUrl);
+        } 
+        // Case 2-2: 진단 ID가 없는 일반적인 새 채팅
+        else {
+          const contextForNewChat = "안녕하세요?";
+          // createChatSession 호출 시 diagnosisId 없이 호출합니다.
+          newSessionData = await createChatSession(contextForNewChat);
+        }
+        
+        if (newSessionData && newSessionData.session_id) {
+          router.replace(`/chat?session_id=${newSessionData.session_id}`, { scroll: false });
+          return; 
         } else {
           console.error("Failed to create new chat session:", createSessionError);
+          setIsLoadingPage(false);
         }
       }
       setIsLoadingPage(false);
-    }
+    };
+
     initializeChat();
-  }, [initialSessionIdFromUrl]); 
+  // ❗️수정: 의존성 배열에서 에러 상태(createSessionError, fetchHistoryError)를 제거하여 무한 루프를 방지합니다.
+  }, [initialSessionIdFromUrl, initialMessage, createChatSession, fetchChatHistory, setCurrentSessionIdInHook, router]);
 
   const handleSelectChat = (chat: ChatInfo) => {
     setMenuOpen(false);
@@ -155,6 +179,8 @@ function ChatPageContent() {
     setRenamingIndex(null);
     setActiveMenuIndex(null);
   };
+
+  
 
   const handleDeleteChat = (chatIdToDelete: string, index: number) => {
     console.log(`Deleting chat ID ${chatIdToDelete}`);
@@ -184,7 +210,7 @@ function ChatPageContent() {
     setMessages(prev => prev.filter(msg => !(msg.typing === true) )); 
 
     if (aiResponse) {
-      setMessages(prev => [...prev, { text: aiResponse.answer, from: "bot", documentation: aiResponse.documentation, typing: false }]);
+      setMessages(prev => [...prev, { text: aiResponse.answer, from: "bot", typing: false }]);
     } else {
       setMessages(prev => [...prev, { text: "죄송합니다, 답변을 가져오는데 실패했습니다.", from: "bot", typing: false }]);
       console.error("Failed to send message or get AI response:", sendMessageError);
@@ -223,7 +249,7 @@ function ChatPageContent() {
   return (
    
     <div 
-        className={`flex flex-col flex-1 ${theme.bg} transition-colors duration-300 relative overflow-hidden`}
+        className={`flex flex-col flex-1 ${theme.bg} transition-colors duration-300 relative `}
         style={{ paddingBottom: `${BOTTOM_NAVIGATION_HEIGHT}px` }} 
     >
       {/* 사이드 메뉴 오버레이 */}
@@ -316,7 +342,7 @@ function ChatPageContent() {
       </div>
 
      
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-white relative z-10 shrink-0"> {/* z-index 낮춤 */}
+      <div className="sticky top-0 flex items-center justify-between px-4 py-3 border-b bg-white z-10 shrink-0"> {/* z-index 낮춤 */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
@@ -339,7 +365,7 @@ function ChatPageContent() {
       </div>
 
      
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-4"> 
+      <div className="flex-1 overflow-y-auto p-4 space-y-4"> 
         {messages.map((msg, idx) => (
           <ChatBubble
             key={idx}
@@ -349,7 +375,6 @@ function ChatPageContent() {
             typing={msg.typing}  
             documentation={msg.documentation}
             onCopy={msg.from === "bot" && !msg.typing && msg.text ? () => handleCopy(msg.text) : undefined}
-            onRegenerate={msg.from === "bot" && !msg.typing && msg.text ? () => alert("API 연동 후 응답 재생성 구현") : undefined}
           />
         ))}
         <div ref={messagesEndRef} />
@@ -400,53 +425,61 @@ function ChatBubble({
   documentation?: string | null;
 }) {
   const showActions = from === "bot" && !typing && text;
+  
+  // 꼬리 색상을 Tailwind 클래스로 동적 할당
+  const userTailColor = theme.myMsg === 'bg-blue-500' ? 'border-l-blue-500' : 'border-l-green-500';
+  const botTailColor = theme.bubble === 'bg-blue-100' ? 'border-r-blue-100' : 'border-r-green-100';
+
   return (
     <div className={`flex w-full ${from === "bot" ? "justify-start" : "justify-end"} animate-pop-in`}>
-        <div className={`flex gap-2 items-end ${from === "bot" ? "flex-row" : "flex-row-reverse"}`}>
-            {from === "bot" && (
-                <Image src="/images/robot-icon.png" alt="AI" width={32} height={32} className="rounded-full self-start shrink-0" />
-            )}
-            <div className={`p-3 rounded-lg max-w-[85%] break-words shadow-sm text-sm leading-relaxed ${
-                from === "bot" 
-                ? `${theme.bubble} text-gray-800` 
-                : `${theme.myMsg} text-white`
-            }`}>
-                
-                {typing ? (
-                <div className="flex items-center gap-1.5 py-1 px-2">
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                </div>
-                ) : (
-                <>
-                    <p className="whitespace-pre-wrap">{text}</p>
-                    {documentation && (
-                        <div className="mt-2 pt-2 border-t border-gray-300/50">
-                            <p className="text-xs text-gray-500 mb-0.5">참고 자료:</p>
-                            <a href={documentation} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline break-all">
-                                {documentation}
-                            </a>
-                        </div>
-                    )}
-                </>
-                )}
-
-                {showActions && (
-                    <div className={`flex gap-1 mt-1.5 ${from === "bot" ? "justify-start" : "justify-end"}`}>
-                    {onCopy && (
-                        <button onClick={onCopy} className="p-1 rounded hover:bg-black/10 transition-colors" title="복사">
-                        <Copy className={`w-3.5 h-3.5 ${from === "bot" ? "text-gray-500 hover:text-gray-700" : "text-gray-200 hover:text-white"}`} />
-                        </button>
-                    )}
-                    {onRegenerate && (
-                        <button onClick={onRegenerate} className="p-1 rounded hover:bg-black/10 transition-colors" title="재생성">
-                        <RefreshCw className={`w-3.5 h-3.5 ${from === "bot" ? "text-gray-500 hover:text-gray-700" : "text-gray-200 hover:text-white"}`} />
-                        </button>
-                    )}
-                    </div>
-                )}
+      <div className={`relative max-w-[85%] ${from === "bot" ? "mr-2" : "ml-2"}`}>
+        <div className={`p-3 rounded-lg break-words shadow-sm text-sm leading-relaxed ${
+            from === "bot" 
+            ? `${theme.bubble} text-gray-800` 
+            : `${theme.myMsg} text-white`
+        }`}>
+          
+          {typing ? (
+            <div className="flex items-center gap-1.5 py-1 px-2">
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
             </div>
+          ) : (
+            <>
+              <p className="whitespace-pre-wrap">{text}</p>
+              {documentation && (
+                <div className="mt-2 pt-2 border-t border-gray-300/50">
+                  <p className="text-xs text-gray-500 mb-0.5">참고 자료:</p>
+                  <a href={documentation} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline break-all">
+                    {documentation}
+                  </a>
+                </div>
+              )}
+            </>
+          )}
+
+          {showActions && (
+            <div className={`flex gap-1 mt-1.5 ${from === "bot" ? "justify-start" : "justify-end"}`}>
+              {onCopy && (
+                <button onClick={onCopy} className="p-1 rounded hover:bg-black/10 transition-colors" title="복사">
+                <Copy className={`w-3.5 h-3.5 ${from === "bot" ? "text-gray-500 hover:text-gray-700" : "text-gray-200 hover:text-white"}`} />
+                </button>
+              )}
+          
+            </div>
+          )}
+        </div>
+        
+        {/* 말풍선 꼬리 */}
+        <div className={`absolute top-1/2 -translate-y-1/2 w-0 h-0 
+                        border-solid border-t-[6px] border-t-transparent
+                        border-b-[6px] border-b-transparent
+                        ${from === 'user' 
+                          ? `right-0 -mr-2 border-l-[8px] ${userTailColor}`
+                          : `left-0 -ml-2 border-r-[8px] ${botTailColor}`
+                        }`}
+        />
       </div>
     </div>
   )

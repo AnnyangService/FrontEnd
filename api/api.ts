@@ -18,6 +18,13 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (token && config.headers) {
     config.headers['Authorization'] = `Bearer ${token}`;
   }
+  console.log('🚀 Local App Request:', {
+    url: config.url,
+    method: config.method,
+    headers: config.headers,
+    data: config.data,
+  });
+  
   return config;
 });
 

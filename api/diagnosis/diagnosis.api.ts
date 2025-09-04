@@ -148,14 +148,14 @@ export const DiagnosisAPI = {
     };
     
     // 실제 구현 시 아래 주석 해제 및 모킹 코드 제거
-    /*
+    
     const response = await api.post<ApiResponse<DetailedDiagnosisResponse>>('/diagnosis/step3', requestData);
     if (!response.data.success) {
       throw new Error(response.data.error.message);
     }
     return response.data.data;
-    */
     
-    return mockResponse;
+    
+    //return mockResponse;
   }
 };

@@ -142,6 +142,8 @@ function EyeDiagnosisFormContent() {
       });
 
       if (response && response.category) {
+         console.log("✅ 최종 진단 결과:", response);
+
         setFinalResult(response);
         setUiState("SHOWING_FINAL_RESULT");
       } else {
@@ -225,7 +227,7 @@ function EyeDiagnosisFormContent() {
                         <h2 className="text-xl font-bold">증상별 상세 분석</h2>
                     </div>
                     <Accordion type="single" collapsible className="w-full">
-                        {Object.entries(finalResult.attribute_analysis).map(([key, value], index) => (
+                        {finalResult.attribute_analysis && Object.entries(finalResult.attribute_analysis).map(([key, value], index) => (
                             <AccordionItem value={`attr-${index}`} key={index}>
                                 <AccordionTrigger className="text-md font-semibold text-gray-800 hover:no-underline text-left gap-2 py-4">
             <div className="flex-1 flex flex-col items-start">
@@ -291,7 +293,7 @@ function EyeDiagnosisFormContent() {
                             <Home className="h-5 w-5" /> 홈으로
                         </button>
                         <button
-                            onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}`)}
+                            onClick={() => router.push(`/chat?initialMessage=${encodeURIComponent(initialChatMessage)}&diagnosis_id=${diagnosisIdFromParams}`)}
                             className="flex items-center justify-center gap-2 bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 transition-colors text-base font-medium shadow-md"
                         >
                             <MessageSquarePlus className="h-5 w-5" /> AI와 채팅

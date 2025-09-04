@@ -1,84 +1,89 @@
-import { useState, useCallback, useEffect } from 'react';
-import { API_ENDPOINTS } from '@/lib/constants'; 
+import { useState, useCallback } from 'react';
+import api from '@/api/api'; // api 인스턴스 사용
+import { API_ENDPOINTS } from '@/lib/constants';
+import { ApiResponse } from '@/api/api.types';
 
 
-/*챗봇 API */
+/* 챗봇 API */
 
-// 2-1. 챗봇 세션 생성 API
+
+// Swagger 기반 타입 정의
+// 2-1. 챗봇 세션 생성 API 타입
 interface CreateSessionRequestBody {
-  context: string;
+  query: string;
+  diagnosis_id?: string; // diagnosis_id는 선택적으로 받을 수 있도록 수정
 }
-interface CreateSessionResponse {
+interface CreateSessionResponseData {
   session_id: string;
+  first_conversation: {
+    question: string;
+    answer: string;
+  };
 }
 
-// 2-2. 채팅 기록 받아오기 API
+
+// 2-2. 채팅 기록 받아오기 API 타입
 export interface ChatHistoryItem {
+  question: string;
+  answer: string;
   createdAt: string;
-  question: string;
-  answer: string;
-  document?: string | null;
 }
-interface GetHistoryResponse {
-  history: ChatHistoryItem[];
+interface GetHistoryResponseData {
+  conversations: ChatHistoryItem[];
 }
 
-// 2-3. 챗봇 메시지 전송 API
+
+// 2-3. 챗봇 메시지 전송 API 타입
 interface SendMessageRequestBody {
-  session_id: string;
-  question: string;
+  query: string;
 }
-// 질문 대한 API 응답
-export interface SendMessageResponse { 
+export interface SendMessageResponseData {
   answer: string;
-  documentation?: string | null;
 }
 
-export function useChatting(initialContext: string = "") {
+
+export function useChatting() {
   const [sessionId, setSessionId] = useState<string | null>(null);
+
 
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [createSessionError, setCreateSessionError] = useState<string | null>(null);
 
+
   const [isFetchingHistory, setIsFetchingHistory] = useState(false);
   const [fetchHistoryError, setFetchHistoryError] = useState<string | null>(null);
+
 
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [sendMessageError, setSendMessageError] = useState<string | null>(null);
 
+
   // 2-1. 챗봇 세션 생성
-  const createChatSession = useCallback(async (context: string = initialContext): Promise<string | null> => {
+  const createChatSession = useCallback(async (query: string, diagnosisId?: string): Promise<CreateSessionResponseData | null> => {
     setIsCreatingSession(true);
     setCreateSessionError(null);
     setSessionId(null);
 
+
     try {
-      const requestBody: CreateSessionRequestBody = { context };
-      if (!API_ENDPOINTS.CHAT_SESSION) {
-        console.error("API_ENDPOINTS.CHAT_SESSION이 정의되지 않았습니다.");
-        setCreateSessionError("API 엔드포인트 설정 오류입니다.");
-        setIsCreatingSession(false);
-        return null;
+      const requestBody: CreateSessionRequestBody = { query };
+      if (diagnosisId) {
+        requestBody.diagnosis_id = diagnosisId;
       }
 
-      const response = await fetch(API_ENDPOINTS.CHAT_SESSION, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
 
-      const data: CreateSessionResponse | { message?: string, error?: {message?: string} } = await response.json();
+      const response = await api.post<ApiResponse<CreateSessionResponseData>>(API_ENDPOINTS.CHAT_SESSIONS, requestBody);
 
-      if (!response.ok) {
-        const errorMsg = (data as any)?.message || (data as any)?.error?.message || '챗봇 세션 생성에 실패했습니다.';
-        throw new Error(errorMsg);
+
+      if (!response.data.success) {
+        throw new Error(response.data.error.message || '챗봇 세션 생성에 실패했습니다.');
       }
 
-      const newSessionId = (data as CreateSessionResponse).session_id;
+
+      const newSessionId = response.data.data.session_id;
       setSessionId(newSessionId);
-      return newSessionId;
+      return response.data.data;
+
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '챗봇 세션 생성 중 알 수 없는 오류 발생';
@@ -88,7 +93,8 @@ export function useChatting(initialContext: string = "") {
     } finally {
       setIsCreatingSession(false);
     }
-  }, [initialContext]);
+  }, []);
+
 
   // 2-2. 기록 받아오기
   const fetchChatHistory = useCallback(async (currentSessionId: string): Promise<ChatHistoryItem[] | null> => {
@@ -99,29 +105,16 @@ export function useChatting(initialContext: string = "") {
     setIsFetchingHistory(true);
     setFetchHistoryError(null);
 
+
     try {
-      if (typeof API_ENDPOINTS.CHAT_HISTORY !== 'function') {
-        console.error("API_ENDPOINTS.CHAT_HISTORY가 함수 형태로 정의되지 않았습니다.");
-        setFetchHistoryError("API 엔드포인트 설정 오류입니다.");
-        setIsFetchingHistory(false);
-        return null;
+      const response = await api.get<ApiResponse<GetHistoryResponseData>>(API_ENDPOINTS.CHAT_CONVERSATIONS(currentSessionId));
+     
+      if (!response.data.success) {
+        throw new Error(response.data.error.message || '채팅 기록을 불러오는데 실패했습니다.');
       }
+     
+      return response.data.data.conversations || [];
 
-      const response = await fetch(API_ENDPOINTS.CHAT_HISTORY(currentSessionId), {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data: GetHistoryResponse | { message?: string, error?: {message?: string} } = await response.json();
-
-      if (!response.ok) {
-        const errorMsg = (data as any)?.message || (data as any)?.error?.message || '채팅 기록을 불러오는데 실패했습니다.';
-        throw new Error(errorMsg);
-      }
-      
-      return (data as GetHistoryResponse).history || [];
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '채팅 기록 로딩 중 알 수 없는 오류 발생';
@@ -133,8 +126,9 @@ export function useChatting(initialContext: string = "") {
     }
   }, []);
 
-  // 2-3. 챗봇 메시지 전송 및 답변 받기 - API 응답(SendMessageResponse) 또는 null 반환
-  const sendMessage = useCallback(async (question: string, currentSessionId: string): Promise<SendMessageResponse | null> => {
+
+  // 2-3. 챗봇 메시지 전송 및 답변 받기
+  const sendMessage = useCallback(async (question: string, currentSessionId: string): Promise<SendMessageResponseData | null> => {
     if (!currentSessionId) {
       setSendMessageError("세션 ID가 없어 메시지를 전송할 수 없습니다.");
       return null;
@@ -143,50 +137,26 @@ export function useChatting(initialContext: string = "") {
       return null;
     }
 
+
     setIsSendingMessage(true);
     setSendMessageError(null);
 
+
     try {
       const requestBody: SendMessageRequestBody = {
-        session_id: currentSessionId,
-        question,
+        query: question,
       };
 
-      if (!API_ENDPOINTS.CHAT_MESSAGE) {
-        console.error("API_ENDPOINTS.CHAT_MESSAGE가 정의되지 않았습니다.");
-        setSendMessageError("API 엔드포인트 설정 오류입니다.");
-        setIsSendingMessage(false);
-        return null; 
-      }
-      
-      //토큰가져오는거 틀리면 수정해야함함
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setSendMessageError("인증 토큰이 없습니다. 로그인이 필요합니다.");
-        setIsSendingMessage(false);
-        return null;
+
+      const response = await api.post<ApiResponse<SendMessageResponseData>>(API_ENDPOINTS.CHAT_CONVERSATIONS(currentSessionId), requestBody);
+     
+      if (!response.data.success) {
+        throw new Error(response.data.error.message || '메시지 전송에 실패했습니다.');
       }
 
-        //일단 이런식으로 하고 오류나면 바꾸기
-      const response = await fetch(API_ENDPOINTS.CHAT_MESSAGE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-      
-      const data: SendMessageResponse | { message?: string, error?: {message?: string} } = await response.json();
 
-      if (!response.ok) {
-        const errorMsg = (data as any)?.message || (data as any)?.error?.message || '메시지 전송에 실패했습니다.';
-        setSendMessageError(errorMsg);
+      return response.data.data;
 
-        return null;
-      }
-
-      return data as SendMessageResponse; 
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '메시지 전송/응답 처리 중 알 수 없는 오류 발생';
@@ -198,8 +168,9 @@ export function useChatting(initialContext: string = "") {
     }
   }, []);
 
+
   return {
-    sessionId, 
+    sessionId,
     isCreatingSession,
     createSessionError,
     createChatSession,  
@@ -209,6 +180,7 @@ export function useChatting(initialContext: string = "") {
     isSendingMessage,
     sendMessageError,
     sendMessage,
-    setSessionId, 
+    setSessionId,
   };
 }
+
