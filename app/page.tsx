@@ -7,12 +7,13 @@ import { Bell, Settings, Cat as CatIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Cat } from "@/lib/types/cat"; 
 import { CatAPI } from "@/api/cat/cat.api"; 
+import { useChatting } from "@/hooks/use-chatting";
 import { formatBirthDateToKorean } from "@/lib/utils/date";
 
 
 
 type RecentChat = {
-  id: number;
+  id: string;
   title: string;
   date: string;
 };
@@ -23,15 +24,7 @@ type RecentNotification = {
 };
 
 
-async function getRecentChat(): Promise<RecentChat[]> {
-  return [
-    {
-      id: 1,
-      title: '최근 상담',
-      date: '2025.02.15 14:30',
-    },
-  ];
-}
+
 
 async function getRecentNotification(): Promise<RecentNotification[]> {
   return [
@@ -50,6 +43,7 @@ export default function HomePage() {
   const [recentNotifications, setRecentNotifications] = useState<RecentNotification[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const notifRef = useRef<HTMLDivElement>(null)
+  const { fetchChatList, fetchChatHistory } = useChatting();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -61,28 +55,68 @@ export default function HomePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-      const loadData = async () => {
-      try {
-        setIsLoading(true)
-        const [cats, chat, notifications] = await Promise.all([ 
-          CatAPI.getCatLists(),
-          getRecentChat(),
-          getRecentNotification()
-        ])
-        setRegisteredCats(cats) 
-        setRecentChat(chat)
-        setRecentNotifications(notifications)
-      } catch (error) {
-        console.error('Error loading data:', error)
-        
-      } finally {
-        setIsLoading(false)
-      }
-    }
+       const loadData = async () => {
+      try {
+        setIsLoading(true)
+        // 1. 필요한 모든 데이터를 병렬로 가져옵니다.
+        const [cats, sessionItems, notifications] = await Promise.all([ 
+          CatAPI.getCatLists(),
+          fetchChatList(),
+          getRecentNotification()
+        ])
+        setRegisteredCats(cats) 
+        setRecentNotifications(notifications)
+
+        // 2. 최근 3개의 채팅 내역을 가공합니다.
+        if (sessionItems && sessionItems.length > 0) {
+          // sessionItems 배열에서 최신 3개만 잘라냅니다.
+          const latestThreeSessions = sessionItems.slice(0, 3);
+
+          // 3개의 세션을 병렬로 처리하여 데이터를 가져옵니다.
+          const recentChatsPromises = latestThreeSessions.map(async (session) => {
+            const history = await fetchChatHistory(session.session_id);
+
+            if (history && history.length > 0) {
+              let title = '';
+              // 두 번째 질문이 있으면 제목으로, 없으면 첫 번째 질문을 제목으로 사용합니다.
+              if (history.length > 1 && history[1]) {
+                title = history[1].question;
+              } else {
+                title = history[0].question;
+              }
+
+              // 제목이 너무 길면 잘라줍니다.
+              if (title.length > 20) {
+                title = title.substring(0, 20) + "...";
+              }
+
+              const date = new Date(session.created_at).toLocaleString('ko-KR');
+
+              return { id: session.session_id, title, date };
+            }
+            return null; // 기록이 없는 경우 null을 반환합니다.
+          });
+          
+          // 모든 작업이 완료될 때까지 기다리고, null이 아닌 유효한 데이터만 저장합니다.
+          const resolvedRecentChats = (await Promise.all(recentChatsPromises))
+            .filter((chat): chat is RecentChat => chat !== null);
+
+          setRecentChat(resolvedRecentChats);
+
+        } else {
+          setRecentChat([]);
+        }
+
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [fetchChatList, fetchChatHistory])
 
   
   useEffect(() => {
@@ -197,6 +231,7 @@ export default function HomePage() {
       </div>
 
         <h2 className="text-xl font-bold mt-8 mb-4">AI 상담 기록</h2>
+        <div className="space-y-4"> 
         {recentChat.map((chat) => (
           <Link 
             key={chat.id}
@@ -212,6 +247,7 @@ export default function HomePage() {
             </div>
           </Link>
         ))}
+        </div>
       </div>
     </div>
   )

@@ -166,7 +166,7 @@ export default function NewDiagnosisPage() {
         </div>
 
 {/* 테스트용 URL 입력 (안쓸때 주석처리) */}
-      {/* 
+      {/*
          <div className="my-4 p-3 border rounded">
             <h3 className="text-sm font-medium mb-1">테스트용 URL 입력:</h3>
             <input
@@ -185,7 +185,7 @@ export default function NewDiagnosisPage() {
                 URL로 진단 시작
             </button>
         </div>
-        */}
+       
 
         {/* 숨겨진 input */}
         <input

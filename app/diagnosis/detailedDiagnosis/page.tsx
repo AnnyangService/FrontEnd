@@ -221,6 +221,7 @@ function EyeDiagnosisFormContent() {
                 
                 
                 {/* --- 증상별 상세 분석 (토글) --- */}
+               {/*       
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">
                     <div className="flex items-center gap-3 mb-4 text-blue-600">
                         <ClipboardList className="h-6 w-6" />
@@ -232,14 +233,14 @@ function EyeDiagnosisFormContent() {
                                 <AccordionTrigger className="text-md font-semibold text-gray-800 hover:no-underline text-left gap-2 py-4">
             <div className="flex-1 flex flex-col items-start">
                 <span className="font-bold text-slate-800">{key}</span>
-                {/* 사용자 답변을 여기에 표시합니다 */}
+                
                 <p className="font-normal text-sm text-gray-500 mt-1 text-left italic">
                     "{value.user_input}"
                 </p>
             </div>
         </AccordionTrigger>
         <AccordionContent className="pt-2 pb-4 px-1 space-y-4 bg-slate-50 rounded-b-lg">
-            {/* AI 분석 결과를 여기에 표시합니다 */}
+            
             <div className="bg-white p-3 rounded-md mt-2 border">
                 <div className="flex items-center gap-2 text-sm text-blue-600 font-medium">
                     <CheckCircle2 className="h-4 w-4"/>
@@ -256,6 +257,7 @@ function EyeDiagnosisFormContent() {
                         ))}
                     </Accordion>
                 </div>
+                */}
 
                 {/* --- 상세 분석 및 관리 안내 (토글) --- */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200/80">

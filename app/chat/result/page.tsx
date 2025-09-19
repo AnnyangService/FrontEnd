@@ -25,6 +25,7 @@ function ChatHistoryContent() {
   const id = searchParams.get('id')
   const [chat, setChat] = useState<ChatHistory | null>(null);
 
+
   useEffect(() => {
     if (!id) return;
     async function loadChat() {

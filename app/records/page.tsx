@@ -4,6 +4,8 @@ import Header from "@/components/header"
 import Link from "next/link"
 import Image from "next/image"
 import { useRef, useEffect, useState } from "react";
+import { useChatting } from "@/hooks/use-chatting";
+import { Loader2 } from "lucide-react";
 
 
 export type DiagnosisRecord = {
@@ -15,9 +17,10 @@ export type DiagnosisRecord = {
 };
 
 export type ChatRecord = {
-  id: number;
+  id: string;
   question: string;
   answer: string;
+  date: string;
 };
 
 export async function getDiagnosisRecords(): Promise<DiagnosisRecord[]> {
@@ -39,33 +42,82 @@ export async function getDiagnosisRecords(): Promise<DiagnosisRecord[]> {
   ];
 }
 
-export async function getChatRecords(): Promise<ChatRecord[]> {
-  return [
-    {
-      id: 1,
-      question: "고양이 눈 건강 관리는 어떻게 해야 하나요?",
-      answer: "정기적인 청결 관리와 이상 증상 관찰이 중요합니다.",
-    },
-  ];
-}
 
 export default function RecordsPage() {
   const [chatRecords, setChatRecords] = useState<ChatRecord[] | null>(null);
   const [diagnosisRecords, setDiagnosisRecords] = useState<DiagnosisRecord[] | null>(null);
+  const { fetchChatList, fetchChatHistory } = useChatting();
   
+  const renderFormattedText = (text: string) => {
+    if (!text) return text;
+    const parts = text.split(/(\*\*.*?\*\*)/g).filter(Boolean);
+    return parts.map((part, index) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
 
   useEffect(() => {
     async function loadRecords() {
       const data = await getDiagnosisRecords();
       setDiagnosisRecords(data);
     }
-    async function loadChatRecords() {
-      const data = await getChatRecords();
-      setChatRecords(data);
-    }
+
+    async function loadChatRecords() {
+      const sessionItems = await fetchChatList();
+
+      if (sessionItems) {
+        const recordsPromises = sessionItems.map(async (session) => {
+          const history = await fetchChatHistory(session.session_id);
+          
+          if (history && history.length > 0) {
+            let question: string;
+            let answer: string;
+
+            // 두 번째 Q&A가 있으면 사용하고, 없으면 첫 번째 Q&A를 사용합니다.
+            if (history.length > 1 && history[1]) {
+              question = history[1].question;
+              answer = history[1].answer;
+            } else {
+              question = history[0].question;
+              answer = history[0].answer;
+            }
+            
+            if (answer && answer.length > 200) {
+              answer = answer.substring(0, 200) + "...";
+            }
+
+            const dateObj = new Date(session.created_at);
+            const datePart = `${String(dateObj.getFullYear()).slice(-2)}.${String(dateObj.getMonth() + 1).padStart(2, '0')}.${String(dateObj.getDate()).padStart(2, '0')}`;
+            
+            return {
+              id: session.session_id,
+              question: question,
+              answer: answer,
+              date: datePart,
+            };
+          }
+          return null;
+        });
+        
+        // 3. 모든 작업이 끝날 때까지 기다린 후, 유효한 데이터만 저장합니다.
+        const resolvedRecords = (await Promise.all(recordsPromises))
+          .filter((record): record is ChatRecord => record !== null);
+        
+        setChatRecords(resolvedRecords);
+      } else {
+        setChatRecords([]); // 데이터가 없으면 빈 배열로 설정
+      }
+    }
+
+
+
+    
     loadRecords();
     loadChatRecords();
-  }, []);
+  }, [fetchChatList, fetchChatHistory]);
 
   if (!chatRecords || !diagnosisRecords) return null;
 
@@ -114,12 +166,14 @@ export default function RecordsPage() {
             {chatRecords.map((record) => (
               <Link 
                 key={record.id}
-                href={`/chat/result?id=${record.id}`} 
+                href={`/chat?session_id=${record.id}`} 
                 className="block border rounded-lg p-4 shadow-sm hover:bg-gray-50"
               >
                 <div className="mb-2">
-                  <p className="font-medium text-gray-800">Q: {record.question}</p>
-                  <p className="text-sm text-gray-600 mt-1">A: {record.answer}</p>
+                  <p className="font-medium text-gray-800">Q: {record.question}<span className="text-gray-400 text-xs ml-2">({record.date})</span></p>
+                  <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">
+                   A: {renderFormattedText(record.answer)}
+                   </p>
                 </div>
                 <div className="text-blue-500 mt-3 text-center border-t pt-2 text-sm">상세보기</div>
               </Link>

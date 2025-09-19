@@ -20,7 +20,7 @@ export type ChatInfo = {
   mode: "eye" | "general"
 }
 
-// 채팅 목록 
+/*
 export async function getChatList(): Promise<ChatInfo[]> {
   return [
     { id: "session_id_1", name: "첫번째 눈 상담", mode: "eye" },
@@ -28,7 +28,7 @@ export async function getChatList(): Promise<ChatInfo[]> {
     { id: "session_id_3", name: "눈 질병 관련 문의", mode: "eye" }
   ]
 }
-
+*/
 
 const BOTTOM_NAVIGATION_HEIGHT = 56;
 const CHAT_INPUT_AREA_HEIGHT = 68; 
@@ -52,6 +52,7 @@ function ChatPageContent() {
     sendMessage,
     isSendingMessage,
     sendMessageError,
+    fetchChatList,
     setSessionId: setCurrentSessionIdInHook,
   } = useChatting();
 
@@ -73,6 +74,23 @@ function ChatPageContent() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const renderFormattedText = (text: string) => {
+    // 텍스트가 비어있을 경우를 대비
+    if (!text) return text;
+
+    // 텍스트를 "**" 기준으로 분리합니다.
+    const parts = text.split(/(\*\*.*?\*\*)/g).filter(Boolean);
+
+    return parts.map((part, index) => {
+      // "**"로 감싸인 부분은 <strong> 태그로 변환합니다.
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={index}>{part.slice(2, -2)}</strong>;
+      }
+      // 나머지는 그대로 반환합니다.
+      return part;
+    });
+  };
+
   const theme = currentChatMode === "eye"
     ? { bg: "bg-white", bubble: "bg-blue-100", myMsg: "bg-blue-500" }
     : { bg: "bg-white", bubble: "bg-green-100", myMsg: "bg-green-500" };
@@ -81,82 +99,118 @@ function ChatPageContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   
-  useEffect(() => {
-    const initializeChat = async () => {
-      setIsLoadingPage(true);
-      const loadedChatList = await getChatList();
-      setChatList(loadedChatList);
+ useEffect(() => {
+    const initializeChat = async () => {
+      setIsLoadingPage(true);
 
-      // Case 1: URL에 session_id가 있는 경우 (기존 채팅방 로드)
-      if (initialSessionIdFromUrl) {
-        let activeChatInfo = loadedChatList.find(chat => chat.id === initialSessionIdFromUrl);
+      const sessionItems = await fetchChatList();
+      const processedChatList: ChatInfo[] = [];
 
-         if (!activeChatInfo) {
-          activeChatInfo = { id: initialSessionIdFromUrl, name: '진행중인 상담', mode: 'eye' };
-        }
-
-        if (activeChatInfo) {
-          setCurrentSessionIdInHook(initialSessionIdFromUrl);
-          setCurrentChatName(activeChatInfo.name);
-          setCurrentChatMode(activeChatInfo.mode);
+      if (sessionItems) {
+        for (const item of sessionItems) {
+          const history = await fetchChatHistory(item.session_id);
           
-          const historyItems = await fetchChatHistory(initialSessionIdFromUrl);
-          if (historyItems) {
-            const formattedMessages: Message[] = historyItems.reduce((acc, item) => {
-              acc.push({ text: item.question, from: "user" });
-              acc.push({ text: item.answer, from: "bot" });
-              return acc;
-            }, [] as Message[]);
-            setMessages(formattedMessages);
-          } else {
-            // 히스토리 로딩 실패 시 에러는 훅 내부에서 처리되므로 여기선 메시지 초기화만 진행
-            setMessages([]);
+          // **** ✨ 이 부분이 수정되었습니다 ✨ ****
+          let chatTitle = '이전 대화';
+          // 대화 기록이 있는지 확인합니다.
+          if (history && history.length > 0) {
+            // 두 번째 질문이 있으면(대화 기록이 1개 초과) 두 번째 질문을 이름으로 사용합니다.
+            if (history.length > 1 && history[1]?.question) {
+              chatTitle = history[1].question;
+            } else {
+              // 두 번째 질문이 없으면 첫 번째 질문을 사용합니다.
+              chatTitle = history[0].question;
+            }
           }
-        } else {
-          // URL의 session_id가 목록에 없으면 새 채팅으로 이동
-          router.replace('/chat');
-          return; 
+          
+          // 이름이 너무 길면 잘라줍니다.
+          if (chatTitle.length > 15) {
+            chatTitle = `${chatTitle.substring(0, 15)}...`;
+          }
+          // **** ✨ 여기까지 수정되었습니다 ✨ ****
+
+          const date = new Date(item.created_at);
+          const datePart = `${String(date.getFullYear()).slice(-2)}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+          
+          processedChatList.push({
+            id: item.session_id,
+            name: `${chatTitle} (${datePart})`,
+            mode: item.is_diagnosis_based ? "eye" : "general",
+          });
         }
-      } 
-      // Case 2: URL에 session_id가 없는 경우 (새 채팅 생성)
-      else {
-         setMessages([]);
-        const defaultNewChatMode: "eye" | "general" = "eye"; 
-        setCurrentChatMode(defaultNewChatMode);
-        setCurrentChatName("새로운 채팅");
+      }
+      
+      setChatList(processedChatList);
 
-        let newSessionData;
+      // --- 이하 기존 로직은 동일합니다 ---
 
-        // ❗️수정: Case 2를 두 가지 경우로 분기합니다.
-        // Case 2-1: 진단 ID가 있는 경우
-        if (diagnosisIdFromUrl) {
-          const contextForNewChat = initialMessage || "진단 결과에 대해 더 궁금한 점이 있습니다.";
-          // createChatSession 호출 시 diagnosisIdFromUrl을 전달합니다.
-          newSessionData = await createChatSession(contextForNewChat, diagnosisIdFromUrl);
-        } 
-        // Case 2-2: 진단 ID가 없는 일반적인 새 채팅
-        else {
-          const contextForNewChat = "안녕하세요?";
-          // createChatSession 호출 시 diagnosisId 없이 호출합니다.
-          newSessionData = await createChatSession(contextForNewChat);
-        }
-        
-        if (newSessionData && newSessionData.session_id) {
-          router.replace(`/chat?session_id=${newSessionData.session_id}`, { scroll: false });
-          return; 
-        } else {
-          console.error("Failed to create new chat session:", createSessionError);
-          setIsLoadingPage(false);
-        }
-      }
-      setIsLoadingPage(false);
-    };
+      // Case 1: URL에 session_id가 있는 경우 (기존 채팅방 로드)
+      if (initialSessionIdFromUrl) {
+        let activeChatInfo = processedChatList.find(chat => chat.id === initialSessionIdFromUrl);
 
-    initializeChat();
-  // ❗️수정: 의존성 배열에서 에러 상태(createSessionError, fetchHistoryError)를 제거하여 무한 루프를 방지합니다.
-  }, [initialSessionIdFromUrl, initialMessage, createChatSession, fetchChatHistory, setCurrentSessionIdInHook, router]);
+         if (!activeChatInfo) {
+          activeChatInfo = { id: initialSessionIdFromUrl, name: '진행중인 상담', mode: 'eye' };
+        }
 
-  const handleSelectChat = (chat: ChatInfo) => {
+        if (activeChatInfo) {
+          setCurrentSessionIdInHook(initialSessionIdFromUrl);
+          setCurrentChatName(activeChatInfo.name);
+          setCurrentChatMode(activeChatInfo.mode);
+          
+          const historyItems = await fetchChatHistory(initialSessionIdFromUrl);
+          if (historyItems) {
+            const formattedMessages: Message[] = [];
+            historyItems.forEach((item, index) => {
+              // 첫 번째 기록(index === 0)에서는 AI의 답변만 보여줍니다.
+              if (index === 0) {
+                formattedMessages.push({ text: item.answer, from: "bot" });
+              } else {
+                // 두 번째 기록부터는 질문과 답변을 모두 보여줍니다.
+                formattedMessages.push({ text: item.question, from: "user" });
+                formattedMessages.push({ text: item.answer, from: "bot" });
+              }
+            });
+            setMessages(formattedMessages);
+          } else {
+            setMessages([]);
+          }
+        } else {
+          router.replace('/chat');
+          return; 
+        }
+      } 
+      // Case 2: URL에 session_id가 없는 경우 (새 채팅 생성)
+      else {
+         setMessages([]);
+        const defaultNewChatMode: "eye" | "general" = "eye"; 
+        setCurrentChatMode(defaultNewChatMode);
+        setCurrentChatName("새로운 채팅");
+
+        let newSessionData;
+
+        if (diagnosisIdFromUrl) {
+          const contextForNewChat = initialMessage || "진단 결과에 대해 더 궁금한 점이 있습니다.";
+          newSessionData = await createChatSession(contextForNewChat, diagnosisIdFromUrl);
+        } 
+        else {
+          const contextForNewChat = "안녕하세요?";
+          newSessionData = await createChatSession(contextForNewChat);
+        }
+        
+        if (newSessionData && newSessionData.session_id) {
+          router.replace(`/chat?session_id=${newSessionData.session_id}`, { scroll: false });
+          return; 
+        } else {
+          console.error("Failed to create new chat session:", createSessionError);
+        }
+      }
+      setIsLoadingPage(false);
+    };
+
+    initializeChat();
+  }, [initialSessionIdFromUrl, diagnosisIdFromUrl, initialMessage, createChatSession, fetchChatHistory, fetchChatList, setCurrentSessionIdInHook, router]);
+
+const handleSelectChat = (chat: ChatInfo) => {
     setMenuOpen(false);
     if (currentSessionId !== chat.id) {
       router.push(`/chat?session_id=${chat.id}`);
@@ -369,7 +423,7 @@ function ChatPageContent() {
         {messages.map((msg, idx) => (
           <ChatBubble
             key={idx}
-            text={msg.text}
+            text={renderFormattedText(msg.text)}
             from={msg.from}
             theme={theme}
             typing={msg.typing}  

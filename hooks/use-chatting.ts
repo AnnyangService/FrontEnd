@@ -21,6 +21,14 @@ interface CreateSessionResponseData {
   };
 }
 
+export interface ChatSessionItem {
+  session_id: string;
+  is_diagnosis_based: boolean;
+  created_at: string;
+}
+interface GetChatListResponseData {
+  sessions: ChatSessionItem[];
+}
 
 // 2-2. 채팅 기록 받아오기 API 타입
 export interface ChatHistoryItem {
@@ -57,6 +65,9 @@ export function useChatting() {
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [sendMessageError, setSendMessageError] = useState<string | null>(null);
 
+  const [isFetchingList, setIsFetchingList] = useState(false);
+  const [fetchListError, setFetchListError] = useState<string | null>(null);
+
 
   // 2-1. 챗봇 세션 생성
   const createChatSession = useCallback(async (query: string, diagnosisId?: string): Promise<CreateSessionResponseData | null> => {
@@ -66,24 +77,26 @@ export function useChatting() {
 
 
     try {
-      const requestBody: CreateSessionRequestBody = { query };
+      let response;
+      
+      // diagnosisId 유무에 따라 다른 API 엔드포인트와 요청 본문을 사용합니다.
       if (diagnosisId) {
-        requestBody.diagnosis_id = diagnosisId;
+        // 진단 ID가 있는 경우 (진단 기반 채팅)
+        const requestBody = { query, diagnosis_id: diagnosisId };
+        response = await api.post<ApiResponse<CreateSessionResponseData>>(API_ENDPOINTS.DIAG_CHAT_SESSIONS, requestBody);
+      } else {
+        // 진단 ID가 없는 경우 (일반 채팅)
+        const requestBody = { query };
+        response = await api.post<ApiResponse<CreateSessionResponseData>>(API_ENDPOINTS.NORMAL_CHAT_SESSIONS, requestBody);
       }
-
-
-      const response = await api.post<ApiResponse<CreateSessionResponseData>>(API_ENDPOINTS.CHAT_SESSIONS, requestBody);
-
 
       if (!response.data.success) {
         throw new Error(response.data.error.message || '챗봇 세션 생성에 실패했습니다.');
       }
 
-
       const newSessionId = response.data.data.session_id;
       setSessionId(newSessionId);
       return response.data.data;
-
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '챗봇 세션 생성 중 알 수 없는 오류 발생';
@@ -92,6 +105,30 @@ export function useChatting() {
       return null;
     } finally {
       setIsCreatingSession(false);
+    }
+  }, []);
+
+  // 2-0. 챗봇 세션 목록 가져오기
+  const fetchChatList = useCallback(async (): Promise<ChatSessionItem[] | null> => {
+    setIsFetchingList(true);
+    setFetchListError(null);
+
+    try {
+      const response = await api.get<ApiResponse<GetChatListResponseData>>(API_ENDPOINTS.CHAT_SESSIONS_LIST);
+
+      if (!response.data.success) {
+        throw new Error(response.data.error.message || '채팅 목록을 불러오는데 실패했습니다.');
+      }
+
+      return response.data.data.sessions || [];
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '채팅 목록 로딩 중 알 수 없는 오류 발생';
+      setFetchListError(errorMessage);
+      console.error("Error fetching chat list:", err);
+      return null;
+    } finally {
+      setIsFetchingList(false);
     }
   }, []);
 
@@ -181,6 +218,9 @@ export function useChatting() {
     sendMessageError,
     sendMessage,
     setSessionId,
+    isFetchingList,
+    fetchListError,
+    fetchChatList,
   };
 }
 

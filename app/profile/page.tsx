@@ -10,6 +10,10 @@ import { useEffect, useState } from "react";
 import { formatBirthDateToKorean } from "@/lib/utils/date";
 import { AuthAPI } from "@/api/auth/auth.api";
 import { CatAPI } from "@/api/cat/cat.api";
+import api from "@/api/api"; 
+import { API_ENDPOINTS } from "@/lib/constants"; 
+import { ChatSessionItem } from "@/hooks/use-chatting"; 
+import { ApiResponse } from "@/api/api.types"; 
 
 async function getUserInfo(): Promise<UserInfo> {
   // 1. 유저 정보 불러오기
@@ -18,12 +22,18 @@ async function getUserInfo(): Promise<UserInfo> {
   // 2. 고양이 리스트 불러오기
   const catLists = await CatAPI.getCatLists();
 
+  const response = await api.get<ApiResponse<{ sessions: ChatSessionItem[] }>>(
+    API_ENDPOINTS.CHAT_SESSIONS_LIST
+  );
+
+  const chatSessions = response.data.data.sessions || [];
+
   // 3. 예시로 count는 고정값, 나중에 필요하면 API 연동
   return {
     name: userData.name,
     email: userData.email,
     recordCount: 12,
-    chatCount: 8,
+    chatCount: chatSessions.length,
     cats: catLists,
   };
 }

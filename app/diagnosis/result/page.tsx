@@ -41,6 +41,20 @@ function DiagnosisResultContent() {
   const [isLoadingPage, setIsLoadingPage] = useState(true)
   const [showDetailedDiagnosisButton, setShowDetailedDiagnosisButton] = useState(false);
 
+  const renderAnalysisText = (text: string) => {
+    // 텍스트를 "***" 기준으로 분리하되, 감싸는 부분도 유지합니다.
+    const parts = text.split(/(\*\*\*.*?\*\*\*)/g).filter(Boolean);
+
+    return parts.map((part, index) => {
+      // "***"로 시작하고 끝나는 부분은 <strong> 태그로 감싸줍니다.
+      if (part.startsWith('***') && part.endsWith('***')) {
+        return <strong key={index}>{part.slice(3, -3)}</strong>;
+      }
+      // 나머지는 그대로 텍스트로 반환합니다.
+      return part;
+    });
+  };
+
 
   // processStep2Result 함수에서 showChatButton 관련 로직 제거
   const processStep2Result = useCallback((step1Analysis: string, step2Data: DiagnosisStep2Response | null, step2ErrorText?: string | null) => {
@@ -297,7 +311,7 @@ function DiagnosisResultContent() {
           )}
           
           <p className="mt-2 text-sm text-gray-800 whitespace-pre-line">
-            {currentAnalysisText}
+            {renderAnalysisText(currentAnalysisText)}
           </p>
         </div>
 
