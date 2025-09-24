@@ -27,7 +27,7 @@ jobs:
         echo "NEXT_PUBLIC_API_BASE_URL=https://api.hi-meow.kro.kr" > .env
         
     - name: Install dependencies
-      run: npm ci
+      run: npm install --legacy-peer-deps
       
     - name: Build project
       run: npm run build
