@@ -1,0 +1,63 @@
+name: Deploy to S3
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Create .env file
+      run: |
+        echo "NEXT_PUBLIC_API_BASE_URL=https://api.hi-meow.kro.kr" > .env
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project
+      run: npm run build
+      
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        aws-region: ${{ secrets.AWS_REGION }}
+        role-session-name: GitHubActions-Deploy
+        
+    - name: Deploy to S3
+      run: |
+        aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+        
+    - name: Get CloudFront Distribution ID from Parameter Store
+      if: github.ref == 'refs/heads/main'
+      id: get-cloudfront-id
+      run: |
+        DISTRIBUTION_ID=$(aws ssm get-parameter --name "annyang/frontend/cloudfront-distribution-id" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
+        if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
+          echo "distribution-id=$DISTRIBUTION_ID" >> $GITHUB_OUTPUT
+          echo "CloudFront Distribution ID found: $DISTRIBUTION_ID"
+        else
+          echo "CloudFront Distribution ID not found in Parameter Store"
+        fi
+        
+    - name: Invalidate CloudFront
+      if: github.ref == 'refs/heads/main' && steps.get-cloudfront-id.outputs.distribution-id != ''
+      run: |
+        aws cloudfront create-invalidation --distribution-id ${{ steps.get-cloudfront-id.outputs.distribution-id }} --paths "/*"
+        echo "CloudFront cache invalidated successfully"
