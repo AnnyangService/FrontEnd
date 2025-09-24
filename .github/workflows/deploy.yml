@@ -3,8 +3,7 @@ name: Deploy to S3
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -28,7 +27,7 @@ jobs:
         echo "NEXT_PUBLIC_API_BASE_URL=https://api.hi-meow.kro.kr" > .env
         
     - name: Install dependencies
-      run: npm ci
+      run: npm install --legacy-peer-deps
       
     - name: Build project
       run: npm run build
@@ -45,7 +44,6 @@ jobs:
         aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
         
     - name: Get CloudFront Distribution ID from Parameter Store
-      if: github.ref == 'refs/heads/main'
       id: get-cloudfront-id
       run: |
         DISTRIBUTION_ID=$(aws ssm get-parameter --name "annyang/frontend/cloudfront-distribution-id" --query 'Parameter.Value' --output text 2>/dev/null || echo "")
@@ -57,7 +55,7 @@ jobs:
         fi
         
     - name: Invalidate CloudFront
-      if: github.ref == 'refs/heads/main' && steps.get-cloudfront-id.outputs.distribution-id != ''
+      if: steps.get-cloudfront-id.outputs.distribution-id != ''
       run: |
         aws cloudfront create-invalidation --distribution-id ${{ steps.get-cloudfront-id.outputs.distribution-id }} --paths "/*"
         echo "CloudFront cache invalidated successfully"
