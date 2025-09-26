@@ -66,3 +66,32 @@ export interface DetailedDiagnosisResponse {
     [key: string]: AttributeAnalysis;
   };
 }
+
+export interface Diagnosis {
+  id: string;
+  confidence: number;
+  normal: boolean;
+  image_url: string;
+  is_normal: boolean;
+  created_at: string;
+  second_step: {
+    category: string;
+    confidence: number;
+    created_at: string;
+  } | null;
+  third_step: {
+    category: string;
+    summary: string;
+    details: string;
+    attribute_analysis: {
+      [key: string]: {
+        llmAnalysis: string;
+      };
+    };
+    created_at: string;
+  } | null;
+}
+
+export interface GetMyDiagnosesData {
+  diagnoses: Diagnosis[];
+}

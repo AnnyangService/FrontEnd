@@ -7,6 +7,7 @@ import Image from "next/image";
 import { Calendar, MessageSquare, UserCircle, Cat as CatIcon } from "lucide-react";
 import { UserInfo } from "@/lib/types/profile";
 import { useEffect, useState } from "react";
+import { getMyDiagnoses } from "@/api/diagnosis/diagnosis.api";
 import { formatBirthDateToKorean } from "@/lib/utils/date";
 import { AuthAPI } from "@/api/auth/auth.api";
 import { CatAPI } from "@/api/cat/cat.api";
@@ -28,11 +29,15 @@ async function getUserInfo(): Promise<UserInfo> {
 
   const chatSessions = response.data.data.sessions || [];
 
-  // 3. 예시로 count는 고정값, 나중에 필요하면 API 연동
+   // 4. 진단 기록 수 불러오기
+  const diagnosisResponse = await getMyDiagnoses();
+  const diagnosisRecordsCount = diagnosisResponse.data?.diagnoses?.length || 0;
+
+  
   return {
     name: userData.name,
     email: userData.email,
-    recordCount: 12,
+    recordCount: diagnosisRecordsCount,
     chatCount: chatSessions.length,
     cats: catLists,
   };

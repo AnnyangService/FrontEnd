@@ -5,11 +5,17 @@ import {
   DiagnosisStep2Response,
   DiagnosisStep3AttributesResponse,
   DetailedDiagnosisRequestBody,
-  DetailedDiagnosisResponse
+  DetailedDiagnosisResponse,
+  GetMyDiagnosesData
 } from './diagnosis.types';
 import { ApiResponse } from '../api.types';
 
 const getStorageKey = (diagnosisId: string) => `step2_polling_${diagnosisId}`;
+
+export const getMyDiagnoses = async (): Promise<ApiResponse<GetMyDiagnosesData>> => {
+  const response = await api.get<ApiResponse<GetMyDiagnosesData>>('/diagnosis/my');
+  return response.data;
+};
 
 export const DiagnosisAPI = {
   /**
